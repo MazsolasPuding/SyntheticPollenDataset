@@ -8,8 +8,12 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import cv2
 
-from Filters import *
+# from Filters import *
 from Analyze_tools import *
+from Filters.watershed_edge import segment_pollen_with_edges
+from Filters.watershed_edge_largest import segment_pollen_with_edges
+from Filters.complex_watershed_gpt import complex_watershed
+
 
 PICTURE_FILE_FORMATS = ['.jpg', '.jpeg', '.png', '.gif', '.tif']
 
@@ -132,6 +136,7 @@ def main(path: Path,
     if preprocess:
         for key in input_images.keys():
             # rgba_result = complex_watershed(input_images[key])
+            # pprint(input_images[key].shape)
             rgba_result = segment_pollen_with_edges(input_images[key])
             output_images[key] = rgba_result
     else:
@@ -147,7 +152,7 @@ def main(path: Path,
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='random_selection',
                                      description='Selects a random number of pollen samples from the DB')
-    parser.add_argument('--path', help='DB Path', required=False, type=str, default='D:/UNI/PTE/Pollen/Classification/data/KaggleDB_Structured')
+    parser.add_argument('--path', help='DB Path', required=False, type=str, default='/Users/horvada/Git/Personal/PollenDB/POLLEN73S')
     parser.add_argument('--mode', choices=['one_per_class', 'all_from_one_class', 'n_random', 'all'], default='one_per_class',
                         help='Selection mode: one sample per class, N samples from one class, or totally random.')
     parser.add_argument('--num_samples', type=int, default=0,
@@ -156,7 +161,7 @@ if __name__ == '__main__':
     parser.add_argument('--preprocess', help="Apply Filters and Preprocesses to Selected Images", type=bool, default=True)
     parser.add_argument('--save_path', help="Save path for Preprocessed Images", type=str, default=None)
     parser.add_argument('--plot_selection', help="Plot images of selected pollens", type=bool, default=True)
-    parser.add_argument('--plot_analytics', help="Plot analytics of selection", type=bool, default=True)
+    parser.add_argument('--plot_analytics', help="Plot analytics of selection", type=bool, default=False)
     args = parser.parse_args()
 
     main(path=args.path,
@@ -170,3 +175,5 @@ if __name__ == '__main__':
     
     # 'D:/UNI/PTE/Pollen/Classification/data/KaggleDB_Structured'
     # 'D:/UNI/PTE/Pollen/PollenDB/POLLEN73S'
+    # /Users/horvada/Git/Personal/PollenDB/POLLEN73S
+    # /Users/horvada/Git/Personal/PollenDB/KaggleDB_Structured
