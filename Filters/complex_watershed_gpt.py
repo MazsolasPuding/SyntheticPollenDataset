@@ -1,16 +1,17 @@
 import cv2
 import numpy as np
 from PIL import Image
+import matplotlib.pyplot as plt
 
 def complex_watershed(image):
     # Read the image
     # image = cv2.imread(image_path)
     # Convert the PIL image to a numpy array (PIL to numpy)
-    image_np = np.array(image)
-    # Convert RGB (PIL) to BGR (OpenCV)
-    image_cv = cv2.cvtColor(image_np, cv2.COLOR_RGB2BGR)
+    # image = np.array(image)
+    # # Convert RGB (PIL) to BGR (OpenCV)
+    # image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
     # Convert to grayscale
-    gray = cv2.cvtColor(image_cv, cv2.COLOR_BGR2GRAY)
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
     # Apply Gaussian Blur to reduce noise and smooth the image
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
@@ -44,8 +45,8 @@ def complex_watershed(image):
     markers[unknown == 255] = 0
 
     # Apply the Watershed algorithm
-    markers = cv2.watershed(image_cv, markers)
-    image_cv[markers == -1] = [255, 0, 0]  # Optional: mark boundaries in red
+    markers = cv2.watershed(image, markers)
+    image[markers == -1] = [255, 0, 0]  # Optional: mark boundaries in red
 
     # Convert markers to binary image
     binary_image = np.uint8(markers == 1) * 255
@@ -53,18 +54,37 @@ def complex_watershed(image):
     # Closing to ensure closed shapes, fill any holes
     closing = cv2.morphologyEx(binary_image, cv2.MORPH_CLOSE, kernel, iterations=3)
 
-    return cv2.cvtColor(closing, cv2.COLOR_BGR2RGB)
+    # Where mask is 0, set the image to be transparent
+    result = cv2.bitwise_and(image, image, mask=closing)
 
-    # closing = cv2.cvtColor(closing, cv2.COLOR_BGR2RGB)
-    # # Display the original and the processed image
-    # cv2.imshow('Original Image', image_cv)
-    # cv2.imshow('Segmented Pollen', closing)
-    
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
+    # Convert the original image to BGRA (so we have an alpha channel)
+    result_bgra = cv2.cvtColor(result, cv2.COLOR_BGR2BGRA)
+
+    # Set the alpha channel to the inverse of the mask
+    result_bgra[:, :, 3] = cv2.bitwise_not(closing)
+
+    # Convert the image to RGB
+    rgba_image = cv2.cvtColor(result_bgra, cv2.COLOR_BGRA2RGBA)
+    return rgba_image
+
 
 if __name__ == '__main__':
     # Provide the path to your image
     image_path = 'D:/UNI/PTE/Pollen/PollenDB/POLLEN73S/ceiba_speciosa/Figura24.TIF'
-    image = Image.open(image_path)
-    complex_watershed(image)
+    image = cv2.imread(image_path)
+    rgba_result = complex_watershed(image)
+
+    # Display the original and the processed image
+    image_np = np.array(image)
+    plt.imshow(image_np)
+    # Convert RGB (PIL) to BGR (OpenCV)
+    image = cv2.cvtColor(image_np, cv2.COLOR_RGB2BGR)
+    bgra_image = cv2.cvtColor(rgba_result, cv2.COLOR_RGBA2BGRA)
+    plt.imshow(rgba_result)
+    plt.show()
+
+    cv2.imshow('Original Image', image)
+    cv2.imshow('Segmented Pollen', bgra_image)
+    
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()

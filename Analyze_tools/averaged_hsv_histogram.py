@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 def calculate_average_histogram(image_paths):
     # Initialize sum of histograms for each channel
-    sum_hist_hue = np.zeros((256,))
+    sum_hist_hue = np.zeros((180,))
     sum_hist_saturation = np.zeros((256,))
     sum_hist_value = np.zeros((256,))
     num_images = len(image_paths)
@@ -20,7 +20,7 @@ def calculate_average_histogram(image_paths):
         hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         
         # Calculate histograms for each channel
-        hist_hue = cv2.calcHist([hsv_image], [0], None, [hist_bins], hist_range)
+        hist_hue = cv2.calcHist([hsv_image], [0], None, [180], [0, 180])
         hist_saturation = cv2.calcHist([hsv_image], [1], None, [hist_bins], hist_range)
         hist_value = cv2.calcHist([hsv_image], [2], None, [hist_bins], hist_range)
         
@@ -35,6 +35,22 @@ def calculate_average_histogram(image_paths):
     avg_hist_value = sum_hist_value / num_images
     
     return avg_hist_hue, avg_hist_saturation, avg_hist_value
+
+
+def plot_histograms(histograms, title):
+    # Plot the histograms
+    plt.figure(figsize=(10, 8))
+    colors = ['r', 'g', 'b']
+    labels = ['Hue', 'Saturation', 'Value']
+    
+    for i, hist in enumerate(histograms):
+        plt.plot(hist, color=colors[i], label=labels[i])
+    
+    plt.title(title)
+    plt.xlabel('Bin')
+    plt.ylabel('Frequency')
+    plt.legend()
+    plt.show()
 
 def plot_histograms_separate(histograms, title):
     # Define subplot layout

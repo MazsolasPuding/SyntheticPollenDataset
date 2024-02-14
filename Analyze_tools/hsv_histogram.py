@@ -27,17 +27,17 @@ def hsv_histogram(image):
     # Plotting
     plt.figure(figsize=(10, 8))
 
-    # plt.subplot(311)  # Hue
+    plt.subplot(311)  # Hue
     plt.plot(hist_hue, color='red')
     plt.title('Hue')
 
-    # plt.subplot(312)  # Saturation
-    # plt.plot(hist_saturation, color='green')
-    # plt.title('Saturation')
+    plt.subplot(312)  # Saturation
+    plt.plot(hist_saturation, color='green')
+    plt.title('Saturation')
 
-    # plt.subplot(313)  # Value
-    # plt.plot(hist_value, color='blue')
-    # plt.title('Value')
+    plt.subplot(313)  # Value
+    plt.plot(hist_value, color='blue')
+    plt.title('Value')
 
     plt.tight_layout()
 
