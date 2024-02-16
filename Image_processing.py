@@ -6,6 +6,7 @@ from pprint import pprint
 
 import matplotlib.pyplot as plt
 from PIL import Image
+from tqdm import tqdm
 import cv2
 
 # from Filters import *
@@ -13,6 +14,7 @@ from Analyze_tools import *
 from Filters.watershed_edge import segment_pollen_with_edges
 from Filters.watershed_edge_largest import segment_pollen_with_edges
 from Filters.complex_watershed_gpt import complex_watershed
+from Segmentation_Using_AI.apply_rembg import apply_rembg_remove
 
 
 PICTURE_FILE_FORMATS = ['.jpg', '.jpeg', '.png', '.gif', '.tif']
@@ -70,8 +72,22 @@ def image_shape_check(pictures):
         # plt.axis('off')
         # plt.show()
 
+def create_directory_tree(input_path: Path, save_path: Path, keep_bg: bool = False):
+    save_path.mkdir(exist_ok=True, parents=True)
+    if keep_bg:
+        paths = [save_path / "SegmentedPollens", save_path / "SegmentedBackground"]
+        for path in paths:
+            for subfolder in [sub for sub in input_path.iterdir() if sub.is_dir()]:
+                sub_path = path / subfolder.name
+                sub_path.mkdir(exist_ok=True, parents=True)
+                print(f"Created: {sub_path}")
+    else:
+        for subfolder in [sub for sub in input_path.iterdir() if sub.is_dir()]:
+            sub_path = save_path / subfolder.name
+            sub_path.mkdir(exist_ok=True, parents=True)
+            print(f"Created: {sub_path}")
 
-def plot_images(pictures):
+def plot_images(pictures: np.array):
     # Calculate rows and columns
     num_images = len(pictures.keys())
     cols = int(math.ceil(math.sqrt(num_images) + 2))
@@ -101,13 +117,14 @@ def main(path: Path,
          seed: int = None,
          preprocess: bool = False,
          save_path: str = None,
+         keep_bg: bool = False,
          plot_selection: bool = False,
          plot_analytics: bool = False):
     
     # Setup environment and inputs
     path = Path(path)
-    if seed:
-        random.seed(seed)
+    if save_path: save_path = Path(save_path)
+    if seed: random.seed(seed)
 
     # Selecting Random Images from DB
     if mode == 'one_per_class':
@@ -131,14 +148,33 @@ def main(path: Path,
         avg_hist_hue, avg_hist_saturation, avg_hist_value = calculate_average_histogram(list(input_images.keys()))
         plot_histograms_separate([avg_hist_hue, avg_hist_saturation, avg_hist_value], "Average HSV Histograms")
 
+    if save_path:
+        create_directory_tree(input_path=path, save_path=save_path, keep_bg=keep_bg)
+
     # Image Processing
     output_images = {}
     if preprocess:
-        for key in input_images.keys():
+        for key in tqdm(input_images.keys()):
             # rgba_result = complex_watershed(input_images[key])
-            # pprint(input_images[key].shape)
-            rgba_result = segment_pollen_with_edges(input_images[key])
-            output_images[key] = rgba_result
+            # rgba_result = segment_pollen_with_edges(input_images[key])
+            if not save_path:
+                rgba_result = apply_rembg_remove(image=input_images[key],
+                                                 return_img=plot_selection,
+                                                 keep_bg=keep_bg)
+                output_images[key] = rgba_result
+            else:
+                if keep_bg:
+                    img_save_path = str(save_path / "SegmentedPollens" / key.parent.name / key.stem) + ".png"
+                    bg_save_path =  str(save_path / "SegmentedBackground" / key.parent.name / key.stem) + ".png"
+                else:
+                    img_save_path = str(save_path / key.parent.name / key.stem) + ".png"
+                    bg_save_path =  None
+
+                apply_rembg_remove(image=input_images[key],
+                                   return_img=plot_selection,
+                                   keep_bg=keep_bg,
+                                   image_save_path=img_save_path,
+                                   bg_save_path=bg_save_path)
     else:
         output_images = input_images
 
@@ -152,15 +188,16 @@ def main(path: Path,
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='random_selection',
                                      description='Selects a random number of pollen samples from the DB')
-    parser.add_argument('--path', help='DB Path', required=False, type=str, default='/Users/horvada/Git/Personal/PollenDB/POLLEN73S')
-    parser.add_argument('--mode', choices=['one_per_class', 'all_from_one_class', 'n_random', 'all'], default='one_per_class',
+    parser.add_argument('--path', help='DB Path', required=False, type=str, default='D:/UNI/PTE/Pollen/PollenDB/POLLEN73S')
+    parser.add_argument('--mode', choices=['one_per_class', 'all_from_one_class', 'n_random', 'all'], default='all',
                         help='Selection mode: one sample per class, N samples from one class, or totally random.')
     parser.add_argument('--num_samples', type=int, default=0,
                         help='Number of samples to select (applicable for all_from_one_class and random modes).')
     parser.add_argument('--seed', help='Random seed', type=int, default=42)
     parser.add_argument('--preprocess', help="Apply Filters and Preprocesses to Selected Images", type=bool, default=True)
-    parser.add_argument('--save_path', help="Save path for Preprocessed Images", type=str, default=None)
-    parser.add_argument('--plot_selection', help="Plot images of selected pollens", type=bool, default=True)
+    parser.add_argument('--save_path', help="Save path for Preprocessed Images", type=str, default='D:/UNI/PTE/Pollen/PollenDB/POLLEN73S_PROCESSED')
+    parser.add_argument('--keep_bg', help="Keep Background of pollen images and save them", type=bool, default=True)
+    parser.add_argument('--plot_selection', help="Plot images of selected pollens", type=bool, default=False)
     parser.add_argument('--plot_analytics', help="Plot analytics of selection", type=bool, default=False)
     args = parser.parse_args()
 
@@ -170,10 +207,13 @@ if __name__ == '__main__':
          seed=args.seed,
          preprocess=args.preprocess,
          save_path=args.save_path,
+         keep_bg=args.keep_bg,
          plot_selection=args.plot_selection,
          plot_analytics=args.plot_analytics)
     
     # 'D:/UNI/PTE/Pollen/Classification/data/KaggleDB_Structured'
     # 'D:/UNI/PTE/Pollen/PollenDB/POLLEN73S'
+    # 'D:/UNI/PTE/Pollen/PollenDB/POLLEN73S/hyptis_sp/hyptis_sp (35).jpg'
+    # 'D:/UNI/PTE/Pollen/PollenDB/POLLEN73S_SEG'
     # /Users/horvada/Git/Personal/PollenDB/POLLEN73S
     # /Users/horvada/Git/Personal/PollenDB/KaggleDB_Structured
