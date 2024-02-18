@@ -32,7 +32,7 @@ def select_pollen(pollen_path: Path, num_pollens: int):
                     for pic in subdir.iterdir() if pic.suffix.lower() in PICTURE_FILE_FORMATS]
     selection = random.choices(all_pollen, k=num_pollens)
     return [Pollen(id=i,
-                   path=Path(selection[0]),
+                   path=Path(path),
                    y_position=random.randint(0, 480)
                    ) for i, path in enumerate(selection)]
     
@@ -66,14 +66,14 @@ def main(
     x_start_frame_values, x_end_frame_values, x_start_pollen_values, x_end_pollen_values = [], [], [], []
 
     for frame_idx in range(num_frames):
+        frame = background.copy()
         for pollen in pollens:
-            frame = background.copy()
             # Loop over each color channel
             for c in range(3):
                 # print(f"PollenID: {pollen.id}: x_start_frame: {pollen.x_start_frame} - x_end_frame: {pollen.x_end_frame} - x_start_pollen: {pollen.x_start_pollen} - x_end_pollen: {pollen.x_end_pollen}")
-                # if pollen.x_end_pollen < 0:
-                #     # print(f"PollenID: {pollen.id} is out of frame")
-                #     continue
+                if pollen.x_end_pollen < 0:
+                    # print(f"PollenID: {pollen.id} is out of frame")
+                    continue
                 # Define the regions of the Frame and the Pollen (Alpha region is the same columns and rows as the BGR region)
                 frame_region = frame[pollen.y_start_frame:pollen.y_end_frame, pollen.x_start_frame:pollen.x_end_frame, c]
                 pollen_region = pollen.bgr[ pollen.y_start_pollen : pollen.y_end_pollen, pollen.x_start_pollen : pollen.x_end_pollen, c]
