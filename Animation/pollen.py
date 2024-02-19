@@ -1,7 +1,7 @@
 """
 This module conatins the class Pollen, which is used in Animate.py.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
@@ -10,27 +10,26 @@ import cv2
 @dataclass
 class Pollen:
     id: int
-    # path: Path
-    # y_position: int
+    path: Path
+    position: list
     frame_size: tuple = (640, 480)
-    # x_start_frame: int = 0
-    # x_end_frame: int = 0
-    # x_start_pollen: int = 0
-    # x_end_pollen: int = 0
-    # y_start_frame: int = 0
-    # y_end_frame: int = 0
-    # y_start_pollen: int = 0
-    # y_end_pollen: int = 0
 
 
-    def __init__(self, id: int, path: Path, y_position: int):
-        self.id = id
-        self.pollen_class = path.parent.name
-        self.load_image(path)
-        self.position = [-self.image.shape[1], y_position]
+    def __post_init__(self):
+        self.load_image(self.path)
+        self.pollen_class = self.path.parent.name
+        # Limit Y position offset, so at max only half of the pollen is outside the frame
+        if self.position[1] < -self.image.shape[0] // 2: self.position[1] = -self.image.shape[0]
+        if self.position[1] > self.frame_size[1] - self.image.shape[0] // 2: self.position[1] = self.frame_size[1] - self.image.shape[0]
+        if not self.position[0]: self.position[0] = -self.image.shape[1]
 
     def load_image(self, path: Path):
         self.image = cv2.imread(str(path), cv2.IMREAD_UNCHANGED)
+        frame_height = 1080  # Replace with your frame height
+        new_height = frame_height // 20
+        scale_factor = new_height / self.image.shape[0]
+        self.image = cv2.resize(self.image, (0, 0), fx=scale_factor, fy=scale_factor)
+        
         if self.image.shape[2] == 4:  # Check for alpha channel
             # Extract BGR and Alpha channels
             self.bgr = self.image[:, :, :3]

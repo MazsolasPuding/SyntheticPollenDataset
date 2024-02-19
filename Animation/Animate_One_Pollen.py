@@ -17,7 +17,10 @@ def main(
         frame_size=(640, 480)
     ):
 
-    pollen = Pollen(1, Path('/Users/horvada/Git/Personal/PollenDB/POLLEN73S/hyptis_sp/hyptis_sp (35).jpg'), 300)
+    pollen = Pollen(id=0,
+                    path=Path('/Users/horvada/Git/Personal/PollenDB/POLLEN73S/hyptis_sp/hyptis_sp (35).jpg'),
+                    position=[0, frame_size[1] // 2],
+                    frame_size=frame_size)
     background = np.ones((frame_size[1], frame_size[0], 3), dtype=np.uint8) * 255
 
     # Set up the video writer
@@ -80,7 +83,7 @@ def main(
     plt.ylabel('X Position')
     plt.title('Sliding Windows of Frame and Pollen regions', fontsize=16)
     plt.legend()
-    # plt.show()
+    plt.show()
 
 
 if __name__ == "__main__":

@@ -32,7 +32,9 @@ def show_size_distribution(path):
     plt.show()
 
 if __name__ == '__main__':
-    show_classe_distribution(path=Path('D:/UNI/PTE/Pollen/PollenDB/POLLEN73S'))
-    show_size_distribution(path=Path('D:/UNI/PTE/Pollen/PollenDB/POLLEN73S'))
-    show_classe_distribution(path=Path('D:/UNI/PTE/Pollen/Classification/data/KaggleDB_Structured'))
-    show_size_distribution(path=Path('D:/UNI/PTE/Pollen/Classification/data/KaggleDB_Structured'))
+    # show_classe_distribution(path=Path('D:/UNI/PTE/Pollen/PollenDB/POLLEN73S'))
+    # show_size_distribution(path=Path('D:/UNI/PTE/Pollen/PollenDB/POLLEN73S'))
+    show_classe_distribution(path=Path('/Users/horvada/Git/Personal/PollenDB/POLLEN73S'))
+    show_size_distribution(path=Path('/Users/horvada/Git/Personal/PollenDB/POLLEN73S'))
+    # show_classe_distribution(path=Path('D:/UNI/PTE/Pollen/Classification/data/KaggleDB_Structured'))
+    # show_size_distribution(path=Path('D:/UNI/PTE/Pollen/Classification/data/KaggleDB_Structured'))
