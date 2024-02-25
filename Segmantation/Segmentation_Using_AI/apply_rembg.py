@@ -4,6 +4,23 @@ import cv2
 import numpy as np
 from PIL import Image
 
+def prepare_for_plot(image):
+    image = image.copy()
+    # Blaned a white background for the Pollen using the alpha channel
+    for c in range(3):
+        item = image[:, :, c]
+        white_background = np.ones_like(item, dtype=np.uint8) * 255
+        alpha = image[:, :, 3]
+
+        image_weight = alpha / 255.0
+        frame_weight = 1 - image_weight
+
+        # Blend the image and frame regions
+        blended = item * image_weight + white_background * frame_weight
+        image[:, :, c] = blended.astype(np.uint8)
+
+    return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
 def apply_rembg_remove(image,
                        return_img: bool = True,
                        keep_bg: bool = False,
@@ -28,7 +45,7 @@ def apply_rembg_remove(image,
         cv2.imwrite(bg_save_path, background)
 
     if return_img:
-        image_rgb = cv2.cvtColor(background, cv2.COLOR_BGRA2RGB) if keep_bg else cv2.cvtColor(result, cv2.COLOR_BGRA2RGB)
+        image_rgb = prepare_for_plot(background) if keep_bg else prepare_for_plot(result)
         return image_rgb
   
 

@@ -61,9 +61,9 @@ def animate(
         # Loop over each color channel
         for c in range(3):
             # Define the regions of the Frame and the Pollen (Alpha region is the same columns and rows as the BGR region)
-            frame_region = frame[pollen.y_start_frame:pollen.y_end_frame, pollen.x_start_frame:pollen.x_end_frame, c]
-            pollen_region = pollen.bgr[ pollen.y_start_pollen : pollen.y_end_pollen, pollen.x_start_pollen : pollen.x_end_pollen, c]
-            alpha_region = pollen.alpha[ pollen.y_start_pollen : pollen.y_end_pollen, pollen.x_start_pollen : pollen.x_end_pollen]
+            frame_region = frame[ pollen.y_start_frame:pollen.y_end_frame, pollen.x_start_frame:pollen.x_end_frame, c ]
+            pollen_region = pollen.bgr[ pollen.y_start_pollen : pollen.y_end_pollen, pollen.x_start_pollen : pollen.x_end_pollen, c ]
+            alpha_region = pollen.alpha[ pollen.y_start_pollen : pollen.y_end_pollen, pollen.x_start_pollen : pollen.x_end_pollen ]
 
             # Calculate the weights for the image and frame regions
             image_weight = alpha_region / 255.0
@@ -76,9 +76,12 @@ def animate(
         pollen.position[0] += speed
     return frame
 
+def create_synthetic_dataset():
+    pass
+
 def main(
         pollen_path: str,
-        output_path: str,
+        video_output_path: str,
         num_pollens: int,
         length: int,
         speed: int,
@@ -94,33 +97,35 @@ def main(
     # Set up the video writer
     num_frames = length * fps
     fourcc = cv2.VideoWriter_fourcc(*'DIVX')
-    out = cv2.VideoWriter(output_path, fourcc, fps, frame_size)
+    out = cv2.VideoWriter(video_output_path, fourcc, fps, frame_size)
 
     for frame_idx in range(num_frames):
         frame = background.copy()
         frame = animate(pollens, frame, speed, pollen_path, frame_size)
+        create_synthetic_dataset(pollens, frame)
         out.write(frame)
 
     out.release()
-    print(f"Animation saved to {output_path}")
+    print(f"Animation saved to {video_output_path}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Create an animation of a pollen grain moving across the screen.")
-    parser.add_argument("--pollen_path", type=str, help="Path to the segmented Pollen data source", default='/Users/horvada/Git/Personal/PollenDB/POLLEN73S')
+    parser.add_argument("--pollen_path", type=str, help="Path to the segmented Pollen data source", default='D:/UNI/PTE/Pollen/PollenDB/POLLEN73S_PROCESSED/SegmentedPollens')
     # parser.add_argument("--bg_path", type=str, help="Path to the segmented Background data source", required=False, default=None) TODO: Implement background
-    parser.add_argument("--output_path", type=str, help="Path to save the animation", required=False, default='Analisis_Output/animation.avi')
+    parser.add_argument("--video_output_path", type=str, help="Path to save the animation", required=False, default='./Analisis_Output/animation.avi')
     parser.add_argument("--num_pollens", type=int, help="The number of pollens in one frame", required=False, default=30)
     parser.add_argument("--length", type=int, help="Length of the animation [s]", required=False, default=30)
     parser.add_argument("--speed", type=int, help="Speed of the pollen grain movement", required=False, default=10)
     parser.add_argument("--fps", type=int, help="Frames per second of the animation", required=False, default=30)
     parser.add_argument("--frame_size", type=tuple, help="Size of the animation frame", required=False, default=(1920, 1080))
     args = parser.parse_args()
+    # '/Users/horvada/Git/Personal/PollenDB/POLLEN73S'
 
 
     main(
         pollen_path=args.pollen_path,
-        output_path=args.output_path,
+        video_output_path=args.video_output_path,
         num_pollens=args.num_pollens,
         length=args.length,
         speed=args.speed,
