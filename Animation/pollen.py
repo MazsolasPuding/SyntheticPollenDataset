@@ -1,5 +1,7 @@
 """
 This module conatins the class Pollen, which is used in Animate.py.
+
+The Pollens position indexing starts in the upper left hand corner!
 """
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -13,11 +15,12 @@ class Pollen:
     path: Path
     position: list
     frame_size: tuple = (640, 480)
-
+    annotate: bool = False
 
     def __post_init__(self):
         self.load_image(self.path)
         self.pollen_class = self.path.parent.name
+        self.pollen_class_index = self.get_pollen_class_index()
         # Limit Y position offset, so at max only half of the pollen is outside the frame
         if self.position[1] < -self.image.shape[0] // 2: self.position[1] = -self.image.shape[0]
         if self.position[1] > self.frame_size[1] - self.image.shape[0] // 2: self.position[1] = self.frame_size[1] - self.image.shape[0]
@@ -25,8 +28,8 @@ class Pollen:
 
     def load_image(self, path: Path):
         self.image = cv2.imread(str(path), cv2.IMREAD_UNCHANGED)
-        frame_height = 1080  # Replace with your frame height
-        new_height = frame_height // 20
+        frame_height = self.frame_size[1]
+        new_height = frame_height // 20 # 20
         scale_factor = new_height / self.image.shape[0]
         self.image = cv2.resize(self.image, (0, 0), fx=scale_factor, fy=scale_factor)
         
@@ -38,6 +41,18 @@ class Pollen:
             self.bgr = self.image
             self.alpha = np.full(self.image.shape[:2], 255)  # Full opacity if no alpha channel
 
+    def get_pollen_class_index(self):
+        classes = sorted([cls.name for cls in self.path.parents[1].iterdir() if cls.is_dir()]) # get the grandparent of the path and get all classes (subdire4ctories inside)
+        return classes.index(self.pollen_class)
+    
+    def check_annotation(self):
+        # Set annotation flag to true in certaion visibility thresholds.
+        half = self.position[0] + self.width / 2 # When Half of the image
+        if half >= 0 and half <= self.frame_size[0]:
+            self.annotate = True
+        else:
+            self.annotate = False
+        
     @property
     def width(self):
         return self.image.shape[1]
@@ -76,3 +91,19 @@ class Pollen:
     @property
     def y_end_pollen(self):
         return self.y_start_pollen + (self.y_end_frame - self.y_start_frame)
+    
+    @property
+    def bounding_box(self):
+        # [class index, all normalized x_center, y_center, width, height]
+        if not self.annotate: return (None, None, None, None, None)
+
+        x_center = (self.x_start_frame + (self.x_end_frame - self.x_start_frame) / 2) / self.frame_size[0]
+        y_center = (self.position[1] + self.height / 2) / self.frame_size[1]
+        normalized_width = (self.x_end_frame - self.x_start_frame) / self.frame_size[0]
+        normalized_height = self.height / self.frame_size[1]
+
+        return (self.pollen_class_index, x_center, y_center, normalized_width, normalized_height)
+
+
+    
+    

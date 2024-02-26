@@ -1,5 +1,6 @@
 import argparse
 from pathlib import Path
+import random
 
 import cv2
 import numpy as np
@@ -18,8 +19,8 @@ def main(
     ):
 
     pollen = Pollen(id=0,
-                    path=Path('/Users/horvada/Git/Personal/PollenDB/POLLEN73S/hyptis_sp/hyptis_sp (35).jpg'),
-                    position=[0, frame_size[1] // 2],
+                    path=Path(pollen_path),
+                    position=[None, random.randint(0, frame_size[1])],
                     frame_size=frame_size)
     background = np.ones((frame_size[1], frame_size[0], 3), dtype=np.uint8) * 255
 
@@ -33,6 +34,9 @@ def main(
     x_start_frame_values, x_end_frame_values, x_start_pollen_values, x_end_pollen_values = [], [], [], []
 
     for frame_idx in range(num_frames):
+        pollen.check_annotation()
+        bb = pollen.bounding_box
+        print(f"class: {pollen.pollen_class}, class index: {pollen.pollen_class_index}, position: {pollen.position}, height: {pollen.height}, width: {pollen.width} || BoundingBox: cls: {bb[0]}, x_center: {bb[1]}, y_center: {bb[2]}, n_width: {bb[3]}, n_height: {bb[4]} || Annotate Flag: {pollen.annotate}")
         frame = background.copy()
 
         # Calculate the parts of the image that are inside the frame boundaries
@@ -88,7 +92,7 @@ def main(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Create an animation of a pollen grain moving across the screen.")
-    parser.add_argument("--pollen_path", type=str, help="Path to the segmented Pollen data source", default='/Users/horvada/Git/Personal/PollenDB/POLLEN73S')
+    parser.add_argument("--pollen_path", type=str, help="Path to the segmented Pollen data source", default='D:/UNI/PTE/Pollen/datasets/POLLEN73S/hyptis_sp/hyptis_sp (35).jpg')
     # parser.add_argument("--bg_path", type=str, help="Path to the segmented Background data source", required=False, default=None) TODO: Implement background
     parser.add_argument("--output_path", type=str, help="Path to save the animation", required=False, default='Analisis_Output/animation.avi')
     parser.add_argument("--num_pollens", type=int, help="The number of pollens in one frame", required=False, default=1)
@@ -109,4 +113,6 @@ if __name__ == "__main__":
         frame_size=args.frame_size
     )
 
-
+# Bounding box comparrison between runs
+# class: hyptis_sp, class index: 29, position: [400, 426], height: 54, width: 53 || BoundingBox: cls: 29, x_center: 0.66640625, y_center: 0.94375, n_width: 0.0828125, n_height: 0.1125 || Annotate Flag: True
+# class: hyptis_sp, class index: 29, position: [400, 135], height: 54, width: 53 || BoundingBox: cls: 29, x_center: 0.66640625, y_center: 0.3375, n_width: 0.0828125, n_height: 0.1125 || Annotate Flag: True

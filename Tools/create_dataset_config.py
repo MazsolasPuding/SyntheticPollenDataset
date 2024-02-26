@@ -33,8 +33,8 @@ def main(input_path: str, output_path: str):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input_path", help="Input dataset Path", type=str, default="D:/UNI/PTE/Pollen/PollenDB/POLLEN73S_SEG_BG/SegmentedPollens")
-    parser.add_argument("--output_path", help="Output Yaml Path", type=str, default="D:/UNI/PTE/Pollen/PollenDB/POLLEN73S_Segmented_Pollen_Split")
+    parser.add_argument("--input_path", help="Input dataset Path", type=str, default="D:/UNI/PTE/Pollen/datasets/POLLEN73S_SEG_BG/SegmentedPollens")
+    parser.add_argument("--output_path", help="Output Yaml Path", type=str, default="D:/UNI/PTE/Pollen/datasets/SYNTH_dataset_POLLEN73S")
     args = parser.parse_args()
 
     main(input_path=args.input_path, output_path=args.output_path)
