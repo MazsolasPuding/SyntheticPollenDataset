@@ -19,3 +19,4 @@ Entry point: Animate.py
 - ~~Histogram of foreground~~
 - Histogram of background
 - ~~Make Masked Library~~
+- ~~Speed addition before bounding Box plotting caused to misaligned bboxes~~

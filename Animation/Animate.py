@@ -20,6 +20,7 @@ import argparse
 from datetime import datetime
 import random
 from pathlib import Path
+from typing import List, Tuple
 
 import cv2
 import numpy as np
@@ -31,7 +32,7 @@ PICTURE_FILE_FORMATS = ['.jpg', '.jpeg', '.png', '.gif', '.tif']
 POLLEN_ID = 0
 FRAME_ID = 0
 
-def get_frame_name(timestamp_str):
+def get_frame_name(timestamp_str: str):
     global FRAME_ID
     file_name = f"{timestamp_str}_frame_{FRAME_ID:06d}"
     FRAME_ID += 1
@@ -53,9 +54,8 @@ def select_pollen(pollen_path: Path, num_pollens: int, frame_size: tuple, init: 
     return pollen_selection if init else pollen_selection[0]
 
 def animate(
-        pollens: list,
+        pollens: List[Pollen],
         frame: np.array,
-        speed: int,
         pollen_path: str,
         frame_size: tuple
     ):
@@ -83,10 +83,9 @@ def animate(
             blended_region = pollen_region * image_weight + frame_region * frame_weight
             frame[pollen.y_start_frame : pollen.y_end_frame, pollen.x_start_frame : pollen.x_end_frame, c] = blended_region.astype(np.uint8)
 
-        pollen.position[0] += speed
     return frame
 
-def draw_bounding_boxes(frame, pollens):
+def draw_bounding_boxes(frame: np.array, pollens: List[Pollen]):
     for pollen in pollens:
         if not pollen.annotate:
             continue
@@ -96,9 +95,11 @@ def draw_bounding_boxes(frame, pollens):
         box_color = (0, 255, 0)  # Green color for bounding box
 
         # Draw the dot onto the midle
-        dot_radius = 5
-        cv2.circle(frame, pollen.position, dot_radius, pos_dot_color, -1)
-        cv2.circle(frame, [pollen.x_start_frame, pollen.y_start_frame], 3, frame_dot_color, -1)
+        # dot_radius = 5
+        # cv2.circle(frame, pollen.position, dot_radius, pos_dot_color, -1)
+        # cv2.circle(frame, [pollen.x_start_frame, pollen.y_start_frame], 3, frame_dot_color, -1)
+        # cv2.line(frame, (pollen.x_start_frame, 0), (pollen.x_start_frame, height), [30, 180, 255], thickness=2)
+        # cv2.line(frame, (pollen.x_end_frame, 0), (pollen.x_end_frame, height), [180, 30, 255], thickness=2)
 
         # Draw bounding boxes
         class_index, x_center, y_center, bbox_width, bbox_height = pollen.bounding_box
@@ -112,7 +113,7 @@ def draw_bounding_boxes(frame, pollens):
         cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), box_color, thickness)
     return frame
 
-def save_annotation(path, pollens):
+def save_annotation(path: str, pollens: List[Pollen]):
     annotations = [pollen.bounding_box for pollen in pollens if pollen.annotate]
 
     with open(path, 'w') as f:
@@ -120,6 +121,10 @@ def save_annotation(path, pollens):
             # Convert each annotation to a string and write to the file
             annotation_str = ' '.join(str(x) for x in annotation)
             f.write(annotation_str + '\n')
+
+def shift_pollen(pollens: List[Pollen], speed: int):
+    for pollen in pollens:
+            pollen.position[0] += speed
 
 
 def main(
@@ -130,7 +135,7 @@ def main(
         length: int = 30,
         speed: int = 10,
         fps: int = 30,
-        frame_size: list[int, int] = (1920, 1080),
+        frame_size: Tuple[int, int] = (1920, 1080),
         save_video: bool = True,
         save_frames: bool = True,
         save_labels: bool = True
@@ -154,12 +159,13 @@ def main(
 
     for frame_idx in range(num_frames):
         frame = background.copy()
-        frame = animate(pollens, frame, speed, str(pollen_path / mode), frame_size)
+        frame = animate(pollens, frame, str(pollen_path / mode), frame_size)
         frame_name = get_frame_name(timestamp_str)
         if save_labels: save_annotation(str(output_path / "labels" / mode / frame_name) + ".txt", pollens)
         if save_frames: cv2.imwrite(str(output_path / "images" / mode / frame_name) + ".jpg", frame)
         frame = draw_bounding_boxes(frame, pollens)
         if save_video: out.write(frame)
+        shift_pollen(pollens, speed)
 
     if save_video: out.release()
     print(f"Output saved to {output_path}")
@@ -167,22 +173,25 @@ def main(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Create an animation of a pollen grain moving across the screen.")
-    parser.add_argument("--pollen_path", type=str, help="Path to the segmented Pollen data source", default='D:/UNI/PTE/Pollen/datasets/POLLEN73S_Segmented_Pollen_Split')
+    parser.add_argument("--pollen_path", type=str, help="Path to the segmented Pollen data source", default='/Users/horvada/Git/Personal/datasets/POLLEN73S_PROCESSED')
     # parser.add_argument("--bg_path", type=str, help="Path to the segmented Background data source", required=False, default=None) TODO: Implement background
-    parser.add_argument("--output_path", type=str, required=False, default="D:/UNI/PTE/Pollen/datasets/SYNTH_dataset_POLLEN73S")
+    parser.add_argument("--output_path", type=str, required=False, default='/Users/horvada/Git/Personal/datasets')
     parser.add_argument("--mode", type=str, choices=["train", "val", "test"], default="train")
 
-    parser.add_argument("--num_pollens", type=int, help="The number of pollens in one frame", required=False, default=30)
+    parser.add_argument("--num_pollens", type=int, help="The number of pollens in one frame", required=False, default=40)
     parser.add_argument("--length", type=int, help="Length of the animation [s]", required=False, default=30)
     parser.add_argument("--speed", type=int, help="Speed of the pollen grain movement", required=False, default=10)
     parser.add_argument("--fps", type=int, help="Frames per second of the animation", required=False, default=30)
     parser.add_argument("--frame_size", type=tuple, help="Size of the animation frame", required=False, default=(1920, 1080))
 
     parser.add_argument("--save_video", type=bool, required=False, default=True)
-    parser.add_argument("--save_frames", type=bool, required=False, default=True)
-    parser.add_argument("--save_labels", type=bool, required=False, default=True)
+    parser.add_argument("--save_frames", type=bool, required=False, default=False)
+    parser.add_argument("--save_labels", type=bool, required=False, default=False)
     args = parser.parse_args()
     # '/Users/horvada/Git/Personal/PollenDB/POLLEN73S'
+
+    # 'D:/UNI/PTE/Pollen/datasets/POLLEN73S_Segmented_Pollen_Split'
+    # "D:/UNI/PTE/Pollen/datasets/SYNTH_dataset_POLLEN73S"
 
 
     main(

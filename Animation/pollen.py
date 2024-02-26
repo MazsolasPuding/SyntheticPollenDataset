@@ -47,7 +47,7 @@ class Pollen:
     
     def check_annotation(self):
         # Set annotation flag to true in certaion visibility thresholds.
-        half = self.position[0] + self.width / 2 # When Half of the image
+        half = self.position[0] + self.width / 2 # When Half of the image is inside the frame
         if half >= 0 and half <= self.frame_size[0]:
             self.annotate = True
         else:
