@@ -147,9 +147,9 @@ def create_synthetic_dataset(
     # Setup Paths and Environment
     output_path = Path(output_path)
     pollen_path=Path(pollen_path)
-    save_labels_path = output_path / "labels" / mode
+    save_labels_path = output_path / mode / "labels"
     save_labels_path.mkdir(exist_ok=True, parents=True)
-    save_frames_path = output_path / "images" / mode
+    save_frames_path = output_path / mode / "images"
     save_frames_path.mkdir(exist_ok=True, parents=True)
     save_video_path = output_path / "videos"
     save_video_path.mkdir(exist_ok=True, parents=True)
