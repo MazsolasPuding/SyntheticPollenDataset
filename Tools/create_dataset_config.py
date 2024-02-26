@@ -10,18 +10,19 @@ from pathlib import Path
 from ruamel.yaml import YAML
 
 
-def main(input_path: str, output_path: str):
+def create_dataset_config(input_path: str, output_path: str):
     input_path = Path(input_path)
     output_path = Path(output_path)
+    output_path.mkdir(parents=True, exist_ok=True)
 
     classes = sorted([cls.name for cls in input_path.iterdir() if cls.is_dir()])
     classes_dict = {ind: cls for ind, cls in enumerate(classes)}
 
     data = {
         'path': str(output_path),
-        'train': 'train',
-        'val': 'validation',
-        'test': 'test',
+        'train': 'images/train',
+        'val': 'images/val',
+        'test': 'images/test',
         'names': classes_dict
     }
 
@@ -37,4 +38,4 @@ if __name__ == '__main__':
     parser.add_argument("--output_path", help="Output Yaml Path", type=str, default="D:/UNI/PTE/Pollen/datasets/SYNTH_dataset_POLLEN73S")
     args = parser.parse_args()
 
-    main(input_path=args.input_path, output_path=args.output_path)
+    create_dataset_config(input_path=args.input_path, output_path=args.output_path)

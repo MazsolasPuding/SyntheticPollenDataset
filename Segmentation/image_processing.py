@@ -9,12 +9,16 @@ from PIL import Image
 from tqdm import tqdm
 import cv2
 
-# from Filters import *
-from Analyze_tools import *
-from Filters.watershed_edge import segment_pollen_with_edges
-from Filters.watershed_edge_largest import segment_pollen_with_edges
-from Filters.complex_watershed_gpt import complex_watershed
-from Segmentation_Using_AI.apply_rembg import apply_rembg_remove
+if __name__ != '__main__':
+    from Segmentation.Analyze_tools import *
+    from Segmentation.Segmentation_Using_AI.apply_rembg import apply_rembg_remove
+else:
+    from Analyze_tools import *
+    from Filters.watershed_edge import segment_pollen_with_edges
+    from Filters.watershed_edge_largest import segment_pollen_with_edges
+    from Filters.complex_watershed_gpt import complex_watershed
+    from Segmentation_Using_AI.apply_rembg import apply_rembg_remove
+
 
 
 PICTURE_FILE_FORMATS = ['.jpg', '.jpeg', '.png', '.gif', '.tif']
@@ -111,7 +115,7 @@ def plot_images(pictures: np.array):
     plt.show()
 
 
-def main(path: Path,
+def image_processing(path: str,
          mode: str,
          num_samples: int,
          seed: int = None,
@@ -202,7 +206,7 @@ if __name__ == '__main__':
     parser.add_argument('--plot_analytics', help="Plot analytics of selection", type=bool, default=True)
     args = parser.parse_args()
 
-    main(path=args.path,
+    image_processing(path=args.path,
          mode=args.mode,
          num_samples=args.num_samples,
          seed=args.seed,

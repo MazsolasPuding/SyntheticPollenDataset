@@ -26,7 +26,10 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
-from pollen import Pollen
+if __name__ != "__main__":
+    from Animation.pollen import Pollen
+else:
+    from pollen import Pollen
 
 PICTURE_FILE_FORMATS = ['.jpg', '.jpeg', '.png', '.gif', '.tif']
 POLLEN_ID = 0
@@ -127,7 +130,7 @@ def shift_pollen(pollens: List[Pollen], speed: int):
             pollen.position[0] += speed
 
 
-def main(
+def create_synthetic_dataset(
         pollen_path: str,
         output_path: str,
         mode: str = "train",
@@ -141,8 +144,15 @@ def main(
         save_labels: bool = True,
         draw_bb: bool = True
     ):
+    # Setup Paths and Environment
     output_path = Path(output_path)
     pollen_path=Path(pollen_path)
+    save_labels_path = output_path / "labels" / mode
+    save_labels_path.mkdir(exist_ok=True, parents=True)
+    save_frames_path = output_path / "images" / mode
+    save_frames_path.mkdir(exist_ok=True, parents=True)
+    save_video_path = output_path / "videos"
+    save_video_path.mkdir(exist_ok=True, parents=True)
     current_time = datetime.now()
     timestamp_format = "%Y-%m-%d_%H-%M"
     timestamp_str = current_time.strftime(timestamp_format)
@@ -156,14 +166,14 @@ def main(
     # Set up the video writer
     num_frames = length * fps
     fourcc = cv2.VideoWriter_fourcc(*'DIVX')
-    if save_video: out = cv2.VideoWriter(str(output_path / "animation.avi"), fourcc, fps, frame_size)
+    if save_video: out = cv2.VideoWriter(str(save_video_path / f"{mode}.avi"), fourcc, fps, frame_size)
 
     for frame_idx in range(num_frames):
         frame = background.copy()
         frame = animate(pollens, frame, str(pollen_path / mode), frame_size)
         frame_name = get_frame_name(timestamp_str)
-        if save_labels: save_annotation(str(output_path / "labels" / mode / frame_name) + ".txt", pollens)
-        if save_frames: cv2.imwrite(str(output_path / "images" / mode / frame_name) + ".jpg", frame)
+        if save_labels: save_annotation(str(save_labels_path / frame_name) + ".txt", pollens)
+        if save_frames: cv2.imwrite(str(save_frames_path / frame_name) + ".jpg", frame)
         if draw_bb: frame = draw_bounding_boxes(frame, pollens)
         if save_video: out.write(frame)
         shift_pollen(pollens, speed)
@@ -196,7 +206,7 @@ if __name__ == "__main__":
     # "D:/UNI/PTE/Pollen/datasets/SYNTH_dataset_POLLEN73S"
 
 
-    main(
+    create_synthetic_dataset(
         pollen_path=args.pollen_path,
         output_path=args.output_path,
         mode=args.mode,

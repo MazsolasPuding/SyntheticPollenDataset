@@ -15,7 +15,7 @@ from pathlib import Path
 
 PICTURE_FILE_FORMATS = ['.jpg', '.jpeg', '.png', '.gif', '.tif']
 
-def main(
+def data_split(
         input_path: str,
         output_path: str,
         train_ratio: float = 0.78,
@@ -30,7 +30,7 @@ def main(
     output_path = Path(output_path)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    splits = {'train': {}, 'validation': {}, 'test': {}}
+    splits = {'train': {}, 'val': {}, 'test': {}}
     for split in splits.keys():
         path = output_path / split
         path.mkdir(exist_ok=True)
@@ -48,7 +48,7 @@ def main(
         num_val = int(val_ratio * num_images)
         
         splits['train'][class_dir.name] = images[:num_train]
-        splits['validation'][class_dir.name] = images[num_train:num_train + num_val] if test_ratio > 0.0 else images[num_train:]
+        splits['val'][class_dir.name] = images[num_train:num_train + num_val] if test_ratio > 0.0 else images[num_train:]
         splits['test'][class_dir.name] = images[num_train + num_val:] if test_ratio > 0.0 else []
 
         for key, split in splits.items():
@@ -60,7 +60,7 @@ def main(
     #Print summary stat for the split to make sure the ratios given as argument worked as intended
     print(
         f"Train ratio: {train_ratio} - num_samples: {sum([len(cls) for cls in splits['train'].values()])}\n",
-        f"Validation ratio: {val_ratio} - num_samples: {sum([len(cls) for cls in splits['validation'].values()])}\n",
+        f"val ratio: {val_ratio} - num_samples: {sum([len(cls) for cls in splits['val'].values()])}\n",
         f"Test ratio: {test_ratio} - num_samples: {sum([len(cls) for cls in splits['test'].values()])}"
     )
 
@@ -74,7 +74,7 @@ if __name__ == '__main__':
     parser.add_argument("--test_ratio", type=float, default=0.1)
     args = parser.parse_args()
 
-    main(input_path=args.input_path,
+    data_split(input_path=args.input_path,
          output_path=args.output_path,
          train_ratio=args.train_ratio,
          val_ratio=args.val_ratio,
