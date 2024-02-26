@@ -138,7 +138,8 @@ def main(
         frame_size: Tuple[int, int] = (1920, 1080),
         save_video: bool = True,
         save_frames: bool = True,
-        save_labels: bool = True
+        save_labels: bool = True,
+        draw_bb: bool = True
     ):
     output_path = Path(output_path)
     pollen_path=Path(pollen_path)
@@ -163,7 +164,7 @@ def main(
         frame_name = get_frame_name(timestamp_str)
         if save_labels: save_annotation(str(output_path / "labels" / mode / frame_name) + ".txt", pollens)
         if save_frames: cv2.imwrite(str(output_path / "images" / mode / frame_name) + ".jpg", frame)
-        frame = draw_bounding_boxes(frame, pollens)
+        if draw_bb: frame = draw_bounding_boxes(frame, pollens)
         if save_video: out.write(frame)
         shift_pollen(pollens, speed)
 
@@ -187,6 +188,7 @@ if __name__ == "__main__":
     parser.add_argument("--save_video", type=bool, required=False, default=True)
     parser.add_argument("--save_frames", type=bool, required=False, default=False)
     parser.add_argument("--save_labels", type=bool, required=False, default=False)
+    parser.add_argument("--draw_bb", type=bool, required=False, default=True)
     args = parser.parse_args()
     # '/Users/horvada/Git/Personal/PollenDB/POLLEN73S'
 
@@ -206,6 +208,7 @@ if __name__ == "__main__":
         save_video=args.save_video,
         save_frames=args.save_frames,
         save_labels=args.save_labels,
+        draw_bb=args.draw_bb
     )
 
 
