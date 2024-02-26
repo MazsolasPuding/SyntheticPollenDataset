@@ -161,7 +161,11 @@ def create_synthetic_dataset(
                             num_pollens,
                             frame_size,
                             init=True)
-    background = np.ones((frame_size[1], frame_size[0], 3), dtype=np.uint8) * 255
+    
+    background_r = np.ones((frame_size[1], frame_size[0]), dtype=np.uint8) * 219
+    background_g = np.ones((frame_size[1], frame_size[0]), dtype=np.uint8) * 210
+    background_b = np.ones((frame_size[1], frame_size[0]), dtype=np.uint8) * 162
+    background = np.stack((background_b, background_g, background_r), axis=-1)
 
     # Set up the video writer
     num_frames = length * fps
