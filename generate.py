@@ -1,7 +1,8 @@
 """
-Main Script for generating the Synthetic Data:
-- Create Segmented Pollen Dataset - If Needed
-- Split Dataset into Train, Validation, Test - If Needed
+Main Wrapper Script for generating the Synthetic Dataset:
+- Create Segmented Pollen Dataset
+- Split Dataset into Train, Validation, Test
+- Create Dataset Config Yaml
 - Create Animation and save frames with annotations
 """
 
@@ -71,11 +72,16 @@ def main(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--pollen_dataset", type=str, default="/Users/horvada/Git/Personal/datasets/POLLEN73S")
-    parser.add_argument("--segmnented_path", type=str, default="/Users/horvada/Git/Personal/datasets/POLLEN73S_SEG_BG/SegmentedPollens")
-    parser.add_argument("--split_segmented_path", type=str, default="/Users/horvada/Git/Personal/datasets/POLLEN73S_SPLIT")
-    parser.add_argument("--synth_dataset_path", type=str, default='/Users/horvada/Git/Personal/datasets/SYNTH_dataset_POLLEN73S')
-
+    # Windows Paths
+    parser.add_argument("--pollen_dataset", type=str, default="D:/UNI/PTE/Pollen/datasets/POLLEN73S")
+    parser.add_argument("--segmnented_path", type=str, default="D:/UNI/PTE/Pollen/datasets/POLLEN73S_SEG_BG/SegmentedPollens")
+    parser.add_argument("--split_segmented_path", type=str, default="D:/UNI/PTE/Pollen/datasets/POLLEN73S_SEG_SPLIT")
+    parser.add_argument("--synth_dataset_path", type=str, default="D:/UNI/PTE/Pollen/datasets/SYNTH_POLLEN73S")
+    # Mac Paths
+    # parser.add_argument("--pollen_dataset", type=str, default="/Users/horvada/Git/Personal/datasets/POLLEN73S")
+    # parser.add_argument("--segmnented_path", type=str, default="/Users/horvada/Git/Personal/datasets/POLLEN73S_SEG_BG/SegmentedPollens")
+    # parser.add_argument("--split_segmented_path", type=str, default="/Users/horvada/Git/Personal/datasets/POLLEN73S_SEG_SPLIT")
+    # parser.add_argument("--synth_dataset_path", type=str, default='/Users/horvada/Git/Personal/datasets/SYNTH_POLLEN73S')
 
     parser.add_argument("--train_ratio", type=float, default=0.78)
     parser.add_argument("--val_ratio", type=float, default=0.12)
@@ -100,5 +106,3 @@ if __name__ == "__main__":
         config=args.config,
         generate=args.generate
     )
-
-    # /Users/horvada/Git/Personal/datasets/POLLEN73S

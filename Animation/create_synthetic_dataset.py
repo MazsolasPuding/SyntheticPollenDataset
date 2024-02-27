@@ -97,7 +97,7 @@ def draw_bounding_boxes(frame: np.array, pollens: List[Pollen]):
         frame_dot_color = (255, 0, 0)  # Green color
         box_color = (0, 255, 0)  # Green color for bounding box
 
-        # Draw the dot onto the midle
+        # Draw the dot onto the corner
         # dot_radius = 5
         # cv2.circle(frame, pollen.position, dot_radius, pos_dot_color, -1)
         # cv2.circle(frame, [pollen.x_start_frame, pollen.y_start_frame], 3, frame_dot_color, -1)
