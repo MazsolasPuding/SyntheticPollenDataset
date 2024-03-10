@@ -20,9 +20,9 @@ def create_dataset_config(input_path: str, output_path: str):
 
     data = {
         'path': str(output_path),
-        'train': 'images/train',
-        'val': 'images/val',
-        'test': 'images/test',
+        'train': 'train/images',
+        'val': 'val/images',
+        'test': 'test/images',
         'names': classes_dict
     }
 

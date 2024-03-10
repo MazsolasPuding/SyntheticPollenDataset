@@ -18,6 +18,7 @@ PICTURE_FILE_FORMATS = ['.jpg', '.jpeg', '.png', '.gif', '.tif']
 def data_split(
         input_path: str,
         output_path: str,
+        split_mode: str = "SegmentedPollens",
         train_ratio: float = 0.78,
         val_ratio: float = 0.12,
         test_ratio: float = 0.1
@@ -26,7 +27,7 @@ def data_split(
     if (train_ratio + val_ratio + test_ratio) != 1.0:
         raise ValueError("The input ratios sum must be equal to 1!")
     
-    input_path = Path(input_path)
+    input_path = Path(input_path) / split_mode
     output_path = Path(output_path)
     output_path.mkdir(parents=True, exist_ok=True)
 
@@ -69,6 +70,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--input_path", type=str, default="D:/UNI/PTE/Pollen/PollenDB/POLLEN73S_SEG_BG/SegmentedPollens")
     parser.add_argument("--output_path", type=str, default="D:/UNI/PTE/Pollen/PollenDB/POLLEN73S_Segmented_Pollen_Split")
+    parser.add_argument("--split_mode", choices=["SegmentedPollens", "SegmentedBackground"], type=str, default="SegmentedPollens")
     parser.add_argument("--train_ratio", type=float, default=0.78)
     parser.add_argument("--val_ratio", type=float, default=0.12)
     parser.add_argument("--test_ratio", type=float, default=0.1)
@@ -76,6 +78,7 @@ if __name__ == '__main__':
 
     data_split(input_path=args.input_path,
          output_path=args.output_path,
+         split_mode=args.split_mode,
          train_ratio=args.train_ratio,
          val_ratio=args.val_ratio,
          test_ratio=args.test_ratio

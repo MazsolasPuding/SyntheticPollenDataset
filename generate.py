@@ -14,12 +14,15 @@ import Tools
 
 def main(
         pollen_dataset: str,
-        segmnented_path: str,
+        segmented_path: str,
         split_segmented_path: str,
         synth_dataset_path: str,
         train_ratio: float,
         val_ratio: float,
         test_ratio: float,
+        train_length: int,
+        val_length: int,
+        test_length: int,
         segment: bool,
         split: bool,
         config: bool,
@@ -31,15 +34,16 @@ def main(
             num_samples=0,
             seed=42,
             preprocess=True,
-            save_path=segmnented_path,
+            save_path=segmented_path,
             keep_bg=True,
             plot_selection=False,
             plot_analytics=False
         )
     if split:
         Tools.data_split(
-            input_path=segmnented_path,
+            input_path=segmented_path,
             output_path=split_segmented_path,
+            split_mode ='SegmentedPollens',
             train_ratio=train_ratio,
             val_ratio=val_ratio,
             test_ratio=test_ratio
@@ -50,22 +54,22 @@ def main(
             output_path=synth_dataset_path
         )
     if generate:
-        for mode, ratio in {'train': train_ratio, 'val': val_ratio, 'test': test_ratio}.items():
-            if not ratio:
+        for mode, pars in {'train': [train_ratio, train_length], 'val': [val_ratio, val_length], 'test': [test_ratio, test_length]}.items():
+            if not pars[0]:
                 continue
             Animation.create_synthetic_dataset(
                 pollen_path=split_segmented_path,
                 output_path=synth_dataset_path,
                 mode=mode,
                 num_pollens=40,
-                length=30,
-                speed=10,
+                length=pars[1],
+                speed=100,
                 fps=30,
                 frame_size=(1920, 1080),
                 save_video=True,
                 save_frames=True,
                 save_labels=True,
-                draw_bb=True
+                draw_bb=False
             )
 
 
@@ -73,19 +77,27 @@ def main(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # Windows Paths
-    parser.add_argument("--pollen_dataset", type=str, default="D:/UNI/PTE/Pollen/datasets/POLLEN73S")
-    parser.add_argument("--segmnented_path", type=str, default="D:/UNI/PTE/Pollen/datasets/POLLEN73S_SEG_BG/SegmentedPollens")
-    parser.add_argument("--split_segmented_path", type=str, default="D:/UNI/PTE/Pollen/datasets/POLLEN73S_SEG_SPLIT")
-    parser.add_argument("--synth_dataset_path", type=str, default="D:/UNI/PTE/Pollen/datasets/SYNTH_POLLEN73S")
+    # parser.add_argument("--pollen_dataset", type=str, default="E:/coding/Pollen/datasets/POLLEN73S")
+    # parser.add_argument("--segmented_path", type=str, default="E:/coding/Pollen/datasets/POLLEN73S_SEG_BG")
+    # parser.add_argument("--split_segmented_path", type=str, default="E:/coding/Pollen/datasets/POLLEN73S_SEG_SPLIT_80TRAIN_20VAL") # 80% training split 300 seconds video length
+    # parser.add_argument("--synth_dataset_path", type=str, default="E:/coding/Pollen/datasets/SYNTH_POLLEN73S_300_60")
+    parser.add_argument("--pollen_dataset", type=str, default="E:/coding/Pollen/datasets/POLEN23E_Structured")
+    parser.add_argument("--segmented_path", type=str, default="E:/coding/Pollen/datasets/POLEN23E_SEG_BG_Manual_Filtered")
+    parser.add_argument("--split_segmented_path", type=str, default="E:/coding/Pollen/datasets/POLEN23E_SEG_SPLIT_Manual_Filtered_80TRAIN_20VAL") # 80% training split 300 seconds video length
+    parser.add_argument("--synth_dataset_path", type=str, default="E:/coding/Pollen/datasets/SYNTH_POLEN23E_Manual_Filtered_300_60")
     # Mac Paths
     # parser.add_argument("--pollen_dataset", type=str, default="/Users/horvada/Git/Personal/datasets/POLLEN73S")
     # parser.add_argument("--segmnented_path", type=str, default="/Users/horvada/Git/Personal/datasets/POLLEN73S_SEG_BG/SegmentedPollens")
     # parser.add_argument("--split_segmented_path", type=str, default="/Users/horvada/Git/Personal/datasets/POLLEN73S_SEG_SPLIT")
     # parser.add_argument("--synth_dataset_path", type=str, default='/Users/horvada/Git/Personal/datasets/SYNTH_POLLEN73S')
 
-    parser.add_argument("--train_ratio", type=float, default=0.78)
-    parser.add_argument("--val_ratio", type=float, default=0.12)
-    parser.add_argument("--test_ratio", type=float, default=0.1)
+    parser.add_argument("--train_ratio", type=float, default=0.8)
+    parser.add_argument("--val_ratio", type=float, default=0.2)
+    parser.add_argument("--test_ratio", type=float, default=0.0)
+
+    parser.add_argument("--train_length", type=int, default=300)
+    parser.add_argument("--val_length", type=int, default=60)
+    parser.add_argument("--test_length", type=int, default=0)
 
     parser.add_argument("--segment", type=bool, default=False)
     parser.add_argument("--split", type=bool, default=True)
@@ -95,12 +107,15 @@ if __name__ == "__main__":
 
     main(
         pollen_dataset=args.pollen_dataset,
-        segmnented_path=args.segmnented_path,
+        segmented_path=args.segmented_path,
         split_segmented_path=args.split_segmented_path,
         synth_dataset_path=args.synth_dataset_path,
         train_ratio=args.train_ratio,
         val_ratio=args.val_ratio,
         test_ratio=args.test_ratio,
+        train_length=args.train_length,
+        val_length=args.val_length,
+        test_length=args.test_length,
         segment=args.segment,
         split=args.split,
         config=args.config,
