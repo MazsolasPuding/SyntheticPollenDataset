@@ -61,9 +61,10 @@ def main(
                 pollen_path=split_segmented_path,
                 output_path=synth_dataset_path,
                 mode=mode,
-                num_pollens=40,
+                pollen_pos_mode = "random",
+                num_pollens=20,
                 length=pars[1],
-                speed=100,
+                speed=5,
                 fps=30,
                 frame_size=(1920, 1080),
                 save_video=True,
@@ -80,23 +81,23 @@ if __name__ == "__main__":
     # parser.add_argument("--pollen_dataset", type=str, default="E:/coding/Pollen/datasets/POLLEN73S")
     # parser.add_argument("--segmented_path", type=str, default="E:/coding/Pollen/datasets/POLLEN73S_SEG_BG")
     # parser.add_argument("--split_segmented_path", type=str, default="E:/coding/Pollen/datasets/POLLEN73S_SEG_SPLIT_80TRAIN_20VAL") # 80% training split 300 seconds video length
-    # parser.add_argument("--synth_dataset_path", type=str, default="E:/coding/Pollen/datasets/SYNTH_POLLEN73S_300_60")
-    parser.add_argument("--pollen_dataset", type=str, default="E:/coding/Pollen/datasets/POLEN23E_Structured")
-    parser.add_argument("--segmented_path", type=str, default="E:/coding/Pollen/datasets/POLEN23E_SEG_BG_Manual_Filtered")
-    parser.add_argument("--split_segmented_path", type=str, default="E:/coding/Pollen/datasets/POLEN23E_SEG_SPLIT_Manual_Filtered_80TRAIN_20VAL") # 80% training split 300 seconds video length
-    parser.add_argument("--synth_dataset_path", type=str, default="E:/coding/Pollen/datasets/SYNTH_POLEN23E_Manual_Filtered_300_60")
+    # parser.add_argument("--synth_dataset_path", type=str, default="E:/coding/Pollen/datasets/SYNTH_POLLEN73S_300_60_TEST")
+    # parser.add_argument("--pollen_dataset", type=str, default="E:/coding/Pollen/datasets/POLEN23E_Structured")
+    # parser.add_argument("--segmented_path", type=str, default="E:/coding/Pollen/datasets/POLEN23E_SEG_BG_Manual_Filtered")
+    # parser.add_argument("--split_segmented_path", type=str, default="E:/coding/Pollen/datasets/POLEN23E_SEG_SPLIT_Manual_Filtered_80TRAIN_20VAL") # 80% training split 300 seconds video length
+    # parser.add_argument("--synth_dataset_path", type=str, default="E:/coding/Pollen/datasets/SYNTH_POLEN23E_Manual_Filtered_300_60")
     # Mac Paths
-    # parser.add_argument("--pollen_dataset", type=str, default="/Users/horvada/Git/Personal/datasets/POLLEN73S")
-    # parser.add_argument("--segmnented_path", type=str, default="/Users/horvada/Git/Personal/datasets/POLLEN73S_SEG_BG/SegmentedPollens")
-    # parser.add_argument("--split_segmented_path", type=str, default="/Users/horvada/Git/Personal/datasets/POLLEN73S_SEG_SPLIT")
-    # parser.add_argument("--synth_dataset_path", type=str, default='/Users/horvada/Git/Personal/datasets/SYNTH_POLLEN73S')
+    parser.add_argument("--pollen_dataset", type=str, default="/Users/horvada/Git/Personal/datasets/POLLEN73S")
+    parser.add_argument("--segmented_path", type=str, default="/Users/horvada/Git/Personal/datasets/POLLEN73S_SEG_BG")
+    parser.add_argument("--split_segmented_path", type=str, default="/Users/horvada/Git/Personal/datasets/POLLEN73S_SEG_SPLIT_TEST")
+    parser.add_argument("--synth_dataset_path", type=str, default='/Users/horvada/Git/Personal/datasets/SYNTH_POLLEN73S_TEST')
 
     parser.add_argument("--train_ratio", type=float, default=0.8)
     parser.add_argument("--val_ratio", type=float, default=0.2)
     parser.add_argument("--test_ratio", type=float, default=0.0)
 
-    parser.add_argument("--train_length", type=int, default=300)
-    parser.add_argument("--val_length", type=int, default=60)
+    parser.add_argument("--train_length", type=int, default=10)
+    parser.add_argument("--val_length", type=int, default=6)
     parser.add_argument("--test_length", type=int, default=0)
 
     parser.add_argument("--segment", type=bool, default=False)

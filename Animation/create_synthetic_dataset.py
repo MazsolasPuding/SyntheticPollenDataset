@@ -25,6 +25,7 @@ from typing import List, Tuple
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 if __name__ != "__main__":
     from Animation.pollen import Pollen
@@ -33,42 +34,55 @@ else:
 
 PICTURE_FILE_FORMATS = ['.jpg', '.jpeg', '.png', '.gif', '.tif']
 POLLEN_ID = 0
-FRAME_ID = 0
 
-def get_frame_name(timestamp_str: str):
-    global FRAME_ID
-    file_name = f"{timestamp_str}_frame_{FRAME_ID:06d}"
-    FRAME_ID += 1
-    return file_name
+
+def get_frame_name(frame_idx: int, start_timestamp_str: str):
+    frame_name = f"{start_timestamp_str}_frame_{frame_idx:06d}"
+    return frame_name
 
 def select_pollen(pollen_path: Path, num_pollens: int, frame_size: tuple, init: bool = False):
     global POLLEN_ID
     all_pollen = [pic for subdir in pollen_path.iterdir() if subdir.is_dir()   # Get all Images from DB
                     for pic in subdir.iterdir() if pic.suffix.lower() in PICTURE_FILE_FORMATS]
-    # print(set([all_pollen[i].parent.name for i in range(len(all_pollen))])) # Print all classes
+
     selection = random.choices(all_pollen, k=num_pollens)
     pollen_selection = []
     for i, path in enumerate(selection):
         pollen_selection.append(Pollen(id=POLLEN_ID,
                                        path=Path(path),
                                        position=[random.randint(0, frame_size[0]) if init else None, random.randint(0, frame_size[1])],
-                                       frame_size=frame_size))
+                                       frame_size=frame_size,
+                                       pollen_to_frame_ratio=10))
         POLLEN_ID += 1
     return pollen_selection if init else pollen_selection[0]
+
+def update_pollen(
+        pollens: List[Pollen],
+        frame_size: tuple,
+        pollen_path: str,
+        mode:str,
+        pollen_pos_mode: str = "continuous"):
+    
+    if pollen_pos_mode == "continuous":
+        for pollen in pollens.copy():
+            if pollen.x_end_pollen < 0:
+                pollens.remove(pollen)
+                pollens.append(
+                    select_pollen(pollen_path=pollen_path / mode,
+                                  num_pollens=1,
+                                  frame_size=frame_size)
+                            )
+    elif pollen_pos_mode == "random":
+        pollens = select_pollen(pollen_path / mode,
+                                num_pollens=len(pollens),
+                                frame_size=frame_size,
+                                init=True)
+    return pollens
 
 def animate(
         pollens: List[Pollen],
         frame: np.array,
-        pollen_path: str,
-        frame_size: tuple
     ):
-    for pollen in pollens.copy():
-        if pollen.x_end_pollen < 0:
-            pollens.remove(pollen)
-            print(f"REMOVED ID: {pollen.id}")
-            pollens.append(select_pollen(pollen_path=Path(pollen_path),
-                                            num_pollens=1,
-                                            frame_size=frame_size))
     for pollen in pollens:
         pollen.check_annotation()
         # Loop over each color channel
@@ -134,6 +148,7 @@ def create_synthetic_dataset(
         pollen_path: str,
         output_path: str,
         mode: str = "train",
+        pollen_pos_mode: str = "continuous",
         num_pollens: int = 30,
         length: int = 30,
         speed: int = 10,
@@ -155,7 +170,9 @@ def create_synthetic_dataset(
     save_video_path.mkdir(exist_ok=True, parents=True)
     current_time = datetime.now()
     timestamp_format = "%Y-%m-%d_%H-%M"
-    timestamp_str = current_time.strftime(timestamp_format)
+    start_timestamp_str = current_time.strftime(timestamp_format)
+    # all_pollen = [pic for subdir in pollen_path.iterdir() if subdir.is_dir()   # Get all Images from DB
+    #             for pic in subdir.iterdir() if pic.suffix.lower() in PICTURE_FILE_FORMATS]
 
     pollens = select_pollen(pollen_path / mode,
                             num_pollens,
@@ -172,15 +189,16 @@ def create_synthetic_dataset(
     fourcc = cv2.VideoWriter_fourcc(*'DIVX')
     if save_video: out = cv2.VideoWriter(str(save_video_path / f"{mode}.avi"), fourcc, fps, frame_size)
 
-    for frame_idx in range(num_frames):
+    for frame_idx in tqdm(range(num_frames)):
         frame = background.copy()
-        frame = animate(pollens, frame, str(pollen_path / mode), frame_size)
-        frame_name = get_frame_name(timestamp_str)
+        pollens = update_pollen(pollens, frame_size, pollen_path, mode, pollen_pos_mode)
+        frame = animate(pollens, frame)
+        frame_name = get_frame_name(frame_idx, start_timestamp_str)
         if save_labels: save_annotation(str(save_labels_path / frame_name) + ".txt", pollens)
         if save_frames: cv2.imwrite(str(save_frames_path / frame_name) + ".jpg", frame)
         if draw_bb: frame = draw_bounding_boxes(frame, pollens)
         if save_video: out.write(frame)
-        shift_pollen(pollens, speed)
+        if pollen_pos_mode == "continuous": shift_pollen(pollens, speed)
 
     if save_video: out.release()
     print(f"Output saved to {output_path}")
@@ -192,6 +210,7 @@ if __name__ == "__main__":
     # parser.add_argument("--bg_path", type=str, help="Path to the segmented Background data source", required=False, default=None) TODO: Implement background
     parser.add_argument("--output_path", type=str, required=False, default='/Users/horvada/Git/Personal/datasets')
     parser.add_argument("--mode", type=str, choices=["train", "val", "test"], default="train")
+    parser.add_argument("--pollen_pos_mode", type=str, choices=["continuous", "random"], default="continuous")
 
     parser.add_argument("--num_pollens", type=int, help="The number of pollens in one frame", required=False, default=40)
     parser.add_argument("--length", type=int, help="Length of the animation [s]", required=False, default=30)
@@ -214,6 +233,7 @@ if __name__ == "__main__":
         pollen_path=args.pollen_path,
         output_path=args.output_path,
         mode=args.mode,
+        pollen_pos_mode = "continuous",
         num_pollens=args.num_pollens,
         length=args.length,
         speed=args.speed,
