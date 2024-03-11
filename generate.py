@@ -57,21 +57,22 @@ def main(
         for mode, pars in {'train': [train_ratio, train_length], 'val': [val_ratio, val_length], 'test': [test_ratio, test_length]}.items():
             if not pars[0]:
                 continue
-            Animation.create_synthetic_dataset(
+            sdc = Animation.SyntheticDatasetCreator(
                 pollen_path=split_segmented_path,
                 output_path=synth_dataset_path,
                 mode=mode,
-                pollen_pos_mode = "random",
+                pollen_pos_mode = "continuous",
                 num_pollens=20,
                 length=pars[1],
-                speed=5,
+                speed=20,
                 fps=30,
                 frame_size=(1920, 1080),
                 save_video=True,
                 save_frames=True,
                 save_labels=True,
-                draw_bb=False
+                draw_bb=True
             )
+            sdc()
 
 
 

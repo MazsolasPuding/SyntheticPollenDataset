@@ -1,1 +1,1 @@
-from .create_synthetic_dataset import create_synthetic_dataset
+from .create_synthetic_dataset import SyntheticDatasetCreator
