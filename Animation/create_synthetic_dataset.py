@@ -56,6 +56,8 @@ class SyntheticDatasetCreator(Singleton):
             mode: str = "train",
             pollen_pos_mode: str = "continuous",
             num_pollens: int = 30,
+            pollen_to_frame_ratio: int = 10,
+            augment: bool = True,
             length: int = 30,
             speed: int = 10,
             fps: int = 30,
@@ -70,6 +72,8 @@ class SyntheticDatasetCreator(Singleton):
         self.mode = mode
         self.pollen_pos_mode = pollen_pos_mode
         self.num_pollens = num_pollens
+        self.pollen_to_frame_ratio = pollen_to_frame_ratio
+        self.augment = augment
         self.length = length
         self.speed = speed
         self.fps = fps
@@ -82,7 +86,7 @@ class SyntheticDatasetCreator(Singleton):
         self.picture_formats = ['.jpg', '.jpeg', '.png', '.gif', '.tif']
         self.pollen_ID = 0
         self.all_pollen = [pic for subdir in (Path(pollen_path) / mode).iterdir() if subdir.is_dir()   # Get all Images from DB
-                    for pic in subdir.iterdir() if pic.suffix.lower() in PICTURE_FILE_FORMATS]
+                    for pic in subdir.iterdir() if pic.suffix.lower() in self.picture_formats]
 
         self.output_path = Path(output_path)
         self.pollen_path=Path(pollen_path)
@@ -100,7 +104,6 @@ class SyntheticDatasetCreator(Singleton):
 
         self.pollens = self.select_pollen(
                                 num_pollens,
-                                frame_size,
                                 init=True
                             )
         
@@ -118,6 +121,7 @@ class SyntheticDatasetCreator(Singleton):
     def __call__(self):
         self.create_synthetic_dataset() # Call the create_synthetic_dataset function when the instance is called as a function
 
+
     def create_synthetic_dataset(self) -> None:
         for frame_idx in tqdm(range(self.num_frames)):
 
@@ -126,33 +130,30 @@ class SyntheticDatasetCreator(Singleton):
             self.frame = self.animate(self.pollens, self.frame)
             frame_name = self.get_frame_name(frame_idx)
 
-            if self.save_labels:
-                self.save_annotation(str(self.save_labels_path / frame_name) + ".txt", self.pollens)
-            if self.save_frames:
-                cv2.imwrite(str(self.save_frames_path / frame_name) + ".jpg", self.frame)
-            if self.draw_bb:
-                self.frame = self.draw_bounding_boxes(self.frame, self.pollens)
-            if self.save_video:
-                self.video_out.write(self.frame)
-            if self.pollen_pos_mode == "continuous":
-                self.shift_pollen(self.pollens, self.speed)
+            if self.save_labels:  self.save_annotation(str(self.save_labels_path / frame_name) + ".txt", self.pollens)
+            if self.save_frames:  cv2.imwrite(str(self.save_frames_path / frame_name) + ".jpg", self.frame)
+            if self.draw_bb:  self.frame = self.draw_bounding_boxes(self.frame, self.pollens)
+            if self.save_video:  self.video_out.write(self.frame)
+            if self.pollen_pos_mode == "continuous":  self.shift_pollen(self.pollens, self.speed)
 
         if self.save_video: self.video_out.release()
         print(f"Output saved to {self.output_path}")
+
 
     def get_frame_name(self, frame_idx: int) -> str:
         frame_name = f"{self.start_timestamp_str}_frame_{frame_idx:06d}"
         return frame_name
 
-    def select_pollen(self, num_pollens: int, frame_size: tuple, init: bool = False):
+    def select_pollen(self, num_pollens: int, init: bool = False):
         selection = random.choices(self.all_pollen, k=num_pollens)
         pollen_selection = []
         for i, path in enumerate(selection):
             pollen_selection.append(Pollen(id=self.pollen_ID,
                                         path=Path(path),
-                                        position=[random.randint(0, frame_size[0]) if init else None, random.randint(0, frame_size[1])],
-                                        frame_size=frame_size,
-                                        pollen_to_frame_ratio=10))
+                                        position=[random.randint(0, self.frame_size[0]) if init else None, random.randint(0, self.frame_size[1])],
+                                        frame_size=self.frame_size,
+                                        pollen_to_frame_ratio=self.pollen_to_frame_ratio,
+                                        augment=self.augment))
             self.pollen_ID += 1
         return pollen_selection if init else pollen_selection[0]
 
@@ -161,16 +162,12 @@ class SyntheticDatasetCreator(Singleton):
                 for pollen in self.pollens.copy():
                     if pollen.x_end_pollen < 0:
                         self.pollens.remove(pollen)
-                        print(f"POLLEN REMOVED: {pollen.id}")
                         self.pollens.append(
-                            self.select_pollen(
-                                        num_pollens=1,
-                                        frame_size=self.frame_size)
-                                    )
+                            self.select_pollen(num_pollens=1)
+                        )
             elif self.pollen_pos_mode == "random":
                 self.pollens = self.select_pollen(
                                         num_pollens=self.num_pollens,
-                                        frame_size=self.frame_size,
                                         init=True
                                     )
 
@@ -195,7 +192,6 @@ class SyntheticDatasetCreator(Singleton):
                 # Blend the image and frame regions
                 blended_region = pollen_region * image_weight + frame_region * frame_weight
                 frame[pollen.y_start_frame : pollen.y_end_frame, pollen.x_start_frame : pollen.x_end_frame, c] = blended_region.astype(np.uint8)
-
         return frame
 
     def draw_bounding_boxes(self, frame: np.array, pollens: List[Pollen]):
@@ -249,6 +245,8 @@ if __name__ == "__main__":
     parser.add_argument("--pollen_pos_mode", type=str, choices=["continuous", "random"], default="continuous")
 
     parser.add_argument("--num_pollens", type=int, help="The number of pollens in one frame", required=False, default=40)
+    parser.add_argument("--pollen_to_frame_ratio", type=int, help="Frame Height / pollen height = pollen_to_frame_ratio", required=False, default=15)
+    parser.add_argument("--augment", type=bool, help="Set true if pollen image augmentation is needed", required=False, default=True)
     parser.add_argument("--length", type=int, help="Length of the animation [s]", required=False, default=30)
     parser.add_argument("--speed", type=int, help="Speed of the pollen grain movement", required=False, default=10)
     parser.add_argument("--fps", type=int, help="Frames per second of the animation", required=False, default=30)
@@ -267,6 +265,8 @@ if __name__ == "__main__":
         mode=args.mode,
         pollen_pos_mode = "continuous",
         num_pollens=args.num_pollens,
+        pollen_to_frame_ratio=args.pollen_to_frame_ratio,
+        augment=args.augment,
         length=args.length,
         speed=args.speed,
         fps=args.fps,

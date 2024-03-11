@@ -1,0 +1,54 @@
+#Comment: This is a supermarket list using YAML
+#Note that - character represents the list
+---
+path:
+  # Mac Paths
+  pollen_dataset: /Users/horvada/Git/Personal/datasets/POLLEN73S
+  segmented_path: /Users/horvada/Git/Personal/datasets/POLLEN73S_SEG_BG
+  split_segmented_path: /Users/horvada/Git/Personal/datasets/POLLEN73S_SEG_SPLIT_TEST
+  synth_dataset_path: /Users/horvada/Git/Personal/datasets/SYNTH_POLLEN73S_TEST
+  # Windows Paths
+  # pollen_dataset: E:/coding/Pollen/datasets/POLEN23E_Structured
+  # segmented_path: E:/coding/Pollen/datasets/POLEN23E_SEG_BG_Manual_Filtered
+  # split_segmented_path: E:/coding/Pollen/datasets/POLEN23E_SEG_SPLIT_Manual_Filtered_80TRAIN_20VAL
+  # synth_dataset_path: E:/coding/Pollen/datasets/SYNTH_POLEN23E_Manual_Filtered_300_60
+
+flags:
+  segment: false
+  split: true
+  train_config: true
+  generate: true
+
+segment:
+  mode: all
+  num_samples: 0
+  seed: 42
+  preprocess: True
+  save_path: segmented_path
+  keep_bg: True
+  plot_selection: False
+  plot_analytics: False
+
+split:
+  split_mode: SegmentedPollens
+  train_ratio: 0.8
+  val_ratio: 0.2
+  test_ratio: 0.0
+
+synthetic:
+  pollen_pos_mode: continuous
+  num_pollens: 20
+  pollen_to_frame_ratio: 10
+  augment: True
+  train_length: 10
+  val_length: 6
+  test_length: 0
+  speed: 20
+  fps: 30
+  frame_size:
+    - 1920
+    - 1080
+  save_video: True
+  save_frames: True
+  save_labels: True
+  draw_bb: True

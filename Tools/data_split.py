@@ -29,7 +29,9 @@ def data_split(
     
     input_path = Path(input_path) / split_mode
     output_path = Path(output_path)
-    output_path.mkdir(parents=True, exist_ok=True)
+    if output_path.exists():
+        shutil.rmtree(output_path)
+    output_path.mkdir(parents=True)
 
     splits = {'train': {}, 'val': {}, 'test': {}}
     for split in splits.keys():
