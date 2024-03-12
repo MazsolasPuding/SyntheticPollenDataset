@@ -52,6 +52,7 @@ def main(config):
                 continue
             sdc = Animation.SyntheticDatasetCreator(
                 pollen_path=config['path']['split_segmented_path'],
+                background_path=Path(config['path']['segmented_path']) / 'SegmentedBackground',
                 output_path=config['path']['synth_dataset_path'],
                 mode=mode,
                 pollen_pos_mode=config['synthetic']['pollen_pos_mode'],

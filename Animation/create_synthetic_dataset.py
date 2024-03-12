@@ -1,6 +1,8 @@
 """
 This script creates a synthetic dataset of pollen grains moving across a screen.
 It also generates all the YOLO format annotations needed for detection tasks.
+Run the code with the following command to avoid modul import issues:
+    python -m Animation.create_synthetic_dataset
 
 Usage:
     python create_synthetic_dataset.py [--pollen_path POLLEN_PATH] [--output_path OUTPUT_PATH] [--mode MODE]
@@ -34,12 +36,13 @@ from typing import List, Tuple
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.interpolate import interp1d
+from scipy.signal import resample
 from tqdm import tqdm
 
-if __name__ != "__main__":
-    from Animation.pollen import Pollen
-else:
-    from pollen import Pollen
+
+from Animation.pollen import Pollen
+from Segmentation.Analyze_tools.averaged_hsv_histogram import calculate_average_histogram
 
 
 class Singleton():
@@ -52,6 +55,7 @@ class SyntheticDatasetCreator(Singleton):
     def __init__(
             self,
             pollen_path: str,
+            background_path: str,
             output_path: str,
             mode: str = "train",
             pollen_pos_mode: str = "continuous",
@@ -68,6 +72,7 @@ class SyntheticDatasetCreator(Singleton):
             draw_bb: bool = True
         ):
         self.pollen_path = pollen_path
+        self.background_path = background_path
         self.output_path = output_path
         self.mode = mode
         self.pollen_pos_mode = pollen_pos_mode
@@ -86,6 +91,8 @@ class SyntheticDatasetCreator(Singleton):
         self.picture_formats = ['.jpg', '.jpeg', '.png', '.gif', '.tif']
         self.pollen_ID = 0
         self.all_pollen = [pic for subdir in (Path(pollen_path) / mode).iterdir() if subdir.is_dir()   # Get all Images from DB
+                    for pic in subdir.iterdir() if pic.suffix.lower() in self.picture_formats]
+        self.all_background = [pic for subdir in (Path(background_path)).iterdir() if subdir.is_dir()
                     for pic in subdir.iterdir() if pic.suffix.lower() in self.picture_formats]
 
         self.output_path = Path(output_path)
@@ -107,10 +114,16 @@ class SyntheticDatasetCreator(Singleton):
                                 init=True
                             )
         
-        background_r = np.ones((frame_size[1], frame_size[0]), dtype=np.uint8) * 219
-        background_g = np.ones((frame_size[1], frame_size[0]), dtype=np.uint8) * 210
-        background_b = np.ones((frame_size[1], frame_size[0]), dtype=np.uint8) * 162
-        self.background = np.stack((background_b, background_g, background_r), axis=-1)
+        self.bg_probabilities = self.create_bg_probabilities()
+        self.hue_limit = 0
+        self.sat_limit = 0
+        self.val_limit = 0
+        self.background = self.generate_bg()
+        
+        # background_r = np.ones((frame_size[1], frame_size[0]), dtype=np.uint8) * 219
+        # background_g = np.ones((frame_size[1], frame_size[0]), dtype=np.uint8) * 210
+        # background_b = np.ones((frame_size[1], frame_size[0]), dtype=np.uint8) * 162
+        # self.background = np.stack((background_b, background_g, background_r), axis=-1)
 
         # Set up the video writer
         self.num_frames = length * fps
@@ -125,6 +138,7 @@ class SyntheticDatasetCreator(Singleton):
     def create_synthetic_dataset(self) -> None:
         for frame_idx in tqdm(range(self.num_frames)):
 
+            self.update_background()
             self.frame = self.background.copy()
             self.update_pollen()
             self.frame = self.animate(self.pollens, self.frame)
@@ -157,7 +171,7 @@ class SyntheticDatasetCreator(Singleton):
             self.pollen_ID += 1
         return pollen_selection if init else pollen_selection[0]
 
-    def update_pollen(self):    
+    def update_pollen(self):
             if self.pollen_pos_mode == "continuous":
                 for pollen in self.pollens.copy():
                     if pollen.x_end_pollen < 0:
@@ -170,6 +184,90 @@ class SyntheticDatasetCreator(Singleton):
                                         num_pollens=self.num_pollens,
                                         init=True
                                     )
+
+    def shift_pollen(self, pollens: List[Pollen], speed: int):
+        for pollen in pollens:
+                pollen.position[0] += speed
+
+    def create_bg_probabilities(self) -> np.array:
+        histograms = calculate_average_histogram(self.all_background)
+        return [hist / hist.sum() for hist in histograms]
+    
+    def generate_pixel_column(self, interpolate: bool = True) -> np.array:
+        if interpolate:
+            hue_values = np.random.choice(range(len(self.bg_probabilities[0])), size=10, p=self.bg_probabilities[0])
+            sat_values = np.random.choice(range(len(self.bg_probabilities[1])), size=10, p=self.bg_probabilities[1])
+            val_values = np.random.choice(range(len(self.bg_probabilities[2])), size=10, p=self.bg_probabilities[2])
+
+            # Create interpolation functions
+            hue_interp = interp1d(np.linspace(0, self.frame_size[1], 10), hue_values, kind='cubic')
+            sat_interp = interp1d(np.linspace(0, self.frame_size[1], 10), sat_values, kind='cubic')
+            val_interp = interp1d(np.linspace(0, self.frame_size[1], 10), val_values, kind='cubic')
+
+            # Create the interpolated columns
+            hue_column = hue_interp(np.arange(self.frame_size[1]))
+            sat_column = sat_interp(np.arange(self.frame_size[1]))
+            val_column = val_interp(np.arange(self.frame_size[1]))
+            # Stack the arrays to create a HSV image
+            hsv_column = np.stack([hue_column, sat_column, val_column], axis=-1).astype(np.uint8)
+        else:
+            hue_values = np.random.choice(range(len(self.bg_probabilities[0])), size=self.frame_size[1], p=self.bg_probabilities[0])
+            sat_values = np.random.choice(range(len(self.bg_probabilities[1])), size=self.frame_size[1], p=self.bg_probabilities[1])
+            val_values = np.random.choice(range(len(self.bg_probabilities[2])), size=self.frame_size[1], p=self.bg_probabilities[2])
+            # Stack the arrays to create a HSV image
+            hsv_column = np.stack([hue_values, sat_values, val_values], axis=-1).astype(np.uint8)
+
+        # Convert the HSV image to BGR
+        bgr_column = cv2.cvtColor(np.expand_dims(hsv_column, axis=1), cv2.COLOR_HSV2BGR)
+        return bgr_column
+    
+    def generate_bg(self, mode: str = "dynamic") -> np.array:
+        bgr_background = np.zeros((self.frame_size[1], self.frame_size[0], 3), dtype=np.uint8)
+
+        if mode == "static_rows":
+            column = self.generate_pixel_column()
+            for x in range(self.frame_size[0]):
+                bgr_background[:, x, :] = column.squeeze()
+
+        elif mode == "random":
+            for x in range(self.frame_size[0]):
+                column = self.generate_pixel_column(interpolate=False)
+                bgr_background[:, x, :] = column.squeeze()
+
+            bgr_background = bgr_background.astype(np.float32)
+            blur_size = (1, 1)
+            bgr_background = cv2.GaussianBlur(bgr_background, blur_size, 0)
+            bgr_background = bgr_background.astype(np.uint8)
+
+        elif mode == "dynamic":
+            # Generate N columns
+            num_columns = 25
+            columns = [self.generate_pixel_column() for _ in range(num_columns-2)]
+            columns += [columns[0], columns[0]]  # Ensure the last 2 column is the same as the first
+            columns_stack = np.concatenate(columns, axis=1)  # Stack columns horizontally
+            # Interpolate to frame width
+            original_indices = np.linspace(0, self.frame_size[0], num_columns, endpoint=False)
+            target_indices = np.arange(self.frame_size[0])
+            bgr_background = np.zeros((self.frame_size[1], self.frame_size[0], 3), dtype=np.float32)
+    
+            for i in range(3):  # Iterate over each color channel
+                # Interpolate each channel separately
+                interp_func = interp1d(original_indices, columns_stack[:, :, i], kind='linear', axis=1, fill_value="extrapolate")
+                bgr_background[:, :, i] = interp_func(target_indices)
+            
+            # Apply Gaussian Blur for additional smoothness
+            blur_size = (5, 5)
+            bgr_background = cv2.GaussianBlur(bgr_background, blur_size, 0)
+            bgr_background = np.clip(bgr_background, 0, 255).astype(np.uint8)  # Ensure values are valid
+            
+        return bgr_background
+    
+    def update_background(self):
+        self.background = np.roll(self.background, self.speed, axis=1)
+        blur_size = (5, 5)
+        background = cv2.GaussianBlur(self.background, blur_size, 0)
+        self.background = np.clip(background, 0, 255).astype(np.uint8)  # Ensure values are valid
+
 
     def animate(
             self,
@@ -231,14 +329,11 @@ class SyntheticDatasetCreator(Singleton):
                 annotation_str = ' '.join(str(x) for x in annotation)
                 f.write(annotation_str + '\n')
 
-    def shift_pollen(self, pollens: List[Pollen], speed: int):
-        for pollen in pollens:
-                pollen.position[0] += speed
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Create an animation of a pollen grain moving across the screen.")
     parser.add_argument("--pollen_path", type=str, help="Path to the segmented Pollen data source", default='/Users/horvada/Git/Personal/datasets/POLLEN73S_PROCESSED')
+    parser.add_argument("--background_path", type=str, help="Path to the segmented Pollen Backgrounds", default='/Users/horvada/Git/PERSONAL/datasets/POLLEN73S_SEG_BG/SegmentedBackground')
     # parser.add_argument("--bg_path", type=str, help="Path to the segmented Background data source", required=False, default=None) TODO: Implement background
     parser.add_argument("--output_path", type=str, required=False, default='/Users/horvada/Git/Personal/datasets')
     parser.add_argument("--mode", type=str, choices=["train", "val", "test"], default="train")
@@ -261,6 +356,7 @@ if __name__ == "__main__":
 
     sdc = SyntheticDatasetCreator(
         pollen_path=args.pollen_path,
+        background_path=args.background_path,
         output_path=args.output_path,
         mode=args.mode,
         pollen_pos_mode = "continuous",

@@ -15,14 +15,21 @@ def calculate_average_histogram(image_paths):
     
     for img_path in image_paths:
         # Read the image
-        image = cv2.imread(str(img_path))
+        image = cv2.imread(str(img_path), cv2.IMREAD_UNCHANGED)  # Use cv2.IMREAD_UNCHANGED to keep the alpha channel
         # Convert to HSV
         hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         
+        # If there is an alpha channel, create a mask where the alpha channel is not zero
+        if image.shape[2] == 4:
+            alpha = image[:, :, 3]
+            mask = (alpha > 0).astype(np.uint8)
+        else:
+            mask = None
+        
         # Calculate histograms for each channel
-        hist_hue = cv2.calcHist([hsv_image], [0], None, [180], [0, 180])
-        hist_saturation = cv2.calcHist([hsv_image], [1], None, [hist_bins], hist_range)
-        hist_value = cv2.calcHist([hsv_image], [2], None, [hist_bins], hist_range)
+        hist_hue = cv2.calcHist([hsv_image], [0], mask, [180], [0, 180])
+        hist_saturation = cv2.calcHist([hsv_image], [1], mask, [hist_bins], hist_range)
+        hist_value = cv2.calcHist([hsv_image], [2], mask, [hist_bins], hist_range)
         
         # Sum up the histograms
         sum_hist_hue += hist_hue.flatten()

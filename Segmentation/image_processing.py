@@ -149,7 +149,7 @@ def image_processing(path: str,
     if plot_analytics:
         show_classe_distribution(path)
         show_size_distribution(path)
-        avg_hist_hue, avg_hist_saturation, avg_hist_value = calculate_average_histogram(list(input_images.keys()))
+        avg_hist_hue, avg_hist_saturation, avg_hist_value = calculate_average_histogram(selection)
         plot_histograms_separate([avg_hist_hue, avg_hist_saturation, avg_hist_value], "Average HSV Histograms")
 
     if save_path:
@@ -191,18 +191,16 @@ def image_processing(path: str,
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(prog='random_selection',
-                                     description='Selects a random number of pollen samples from the DB')
-    parser.add_argument('--path', help='DB Path', required=False, type=str, default='D:/UNI/PTE/Pollen/PollenDB/POLLEN73S_SEG_BG/SegmentedBackground')
-    parser.add_argument('--mode', choices=['one_per_class', 'all_from_one_class', 'n_random', 'all'], default='one_per_class',
-                        help='Selection mode: one sample per class, N samples from one class, or totally random.')
-    parser.add_argument('--num_samples', type=int, default=0,
-                        help='Number of samples to select (applicable for all_from_one_class and random modes).')
+    parser = argparse.ArgumentParser(prog='image_processing')
+    # parser.add_argument('--path', help='DB Path', required=False, type=str, default='D:/UNI/PTE/Pollen/PollenDB/POLLEN73S_SEG_BG/SegmentedBackground')
+    parser.add_argument('--path', help='DB Path', required=False, type=str, default='/Users/horvada/Git/PERSONAL/datasets/POLLEN73S_SEG_BG/SegmentedBackground')
+    parser.add_argument('--mode', choices=['one_per_class', 'all_from_one_class', 'n_random', 'all'], default='one_per_class')
+    parser.add_argument('--num_samples', type=int, default=0, help='Number of samples to select (applicable for n_random mode).')
     parser.add_argument('--seed', help='Random seed', type=int, default=42)
-    parser.add_argument('--preprocess', help="Apply Filters and Preprocesses to Selected Images", type=bool, default=True)
+    parser.add_argument('--preprocess', help="Apply Filters and Preprocesses to Selected Images", type=bool, default=False)
     parser.add_argument('--save_path', help="Save path for Preprocessed Images", type=str, default=None)
-    parser.add_argument('--keep_bg', help="Keep Background of pollen images and save them", type=bool, default=True)
-    parser.add_argument('--plot_selection', help="Plot images of selected pollens", type=bool, default=True)
+    parser.add_argument('--keep_bg', help="Keep Background of pollen images and save them", type=bool, default=False)
+    parser.add_argument('--plot_selection', help="Plot images of selected pollens", type=bool, default=False)
     parser.add_argument('--plot_analytics', help="Plot analytics of selection", type=bool, default=True)
     args = parser.parse_args()
 

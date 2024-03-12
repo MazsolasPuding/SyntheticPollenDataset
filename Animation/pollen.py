@@ -9,6 +9,7 @@ from pathlib import Path
 
 import numpy as np
 import cv2
+from opencv_transforms import functional as F
 
 
 @dataclass
@@ -63,20 +64,29 @@ class Pollen:
             self.alpha = np.full(self.image.shape[:2], 255)  # Full opacity if no alpha channel
 
     def augment_image(self):
-        # print(f"Augmenting pollen {self.id}...")
-        return
-        # Perform transformations here...
-        # For transformations that modify the image dimensions or orientation,
-        # make sure to apply the same transformations to the alpha_channel if it exists.
+        # Apply color transformations
+        self.bgr = F.adjust_hue(self.bgr, np.random.uniform(-0.05, 0.05))
+        self.bgr = F.adjust_saturation(self.bgr, np.random.uniform(0.5, 1.5))
+        self.bgr = F.adjust_brightness(self.bgr, np.random.uniform(0.5, 1.5))
+        self.bgr = F.adjust_contrast(self.bgr, np.random.uniform(0.5, 1.5))
+        self.bgr = F.adjust_gamma(self.bgr, np.random.uniform(0.5, 1.5))
 
-        # Example: Random Horizontal Flip applied to both image and alpha channel
-        if np.random.rand() > 0.5:
+        # Flip horizontally
+        if np.random.rand() < 0.5: 
             self.bgr = cv2.flip(self.bgr, 1)
-            if self.has_alpha:
-                self.alpha = cv2.flip(self.alpha, 1)
-
-        # Continue with other transformations as before, applying them to the alpha_channel when necessary.
-        # ...
+            self.alpha = cv2.flip(self.alpha, 1)
+        # Flip vertically
+        if np.random.rand() < 0.5:
+            self.bgr = cv2.flip(self.bgr, 0)
+            self.alpha = cv2.flip(self.alpha, 0)
+        
+        # Add noise
+        mean = 0
+        std_dev = 3
+        noise = np.random.normal(mean, std_dev, self.bgr.shape)
+        self.bgr = self.bgr + noise
+        self.bgr = self.bgr.astype(np.uint8)
+        # print(self.bgr.dtype, self.alpha.dtype, noise.dtype)
 
         # After applying all transformations, if there was an alpha channel, merge it back with the image
         if self.has_alpha:
