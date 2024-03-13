@@ -62,6 +62,9 @@ class SyntheticDatasetCreator(Singleton):
             num_pollens: int = 30,
             pollen_to_frame_ratio: int = 10,
             augment: bool = True,
+            background_type: str = "dynamic",
+            background_regen_inteerval: str = "one_cycle",
+            background_movement: str = "speed",
             length: int = 30,
             speed: int = 10,
             fps: int = 30,
@@ -79,6 +82,9 @@ class SyntheticDatasetCreator(Singleton):
         self.num_pollens = num_pollens
         self.pollen_to_frame_ratio = pollen_to_frame_ratio
         self.augment = augment
+        self.background_type = background_type
+        self.background_regen_inteerval = background_regen_inteerval
+        self.background_movement = background_movement
         self.length = length
         self.speed = speed
         self.fps = fps
@@ -114,16 +120,12 @@ class SyntheticDatasetCreator(Singleton):
                                 init=True
                             )
         
+        if background_regen_inteerval == "one_cycle": self.background_regen_inteerval = frame_size[0] / speed
+        elif background_regen_inteerval == "none": self.background_regen_inteerval = None
+        elif background_regen_inteerval == "always": self.background_regen_inteerval = 1
+
         self.bg_probabilities = self.create_bg_probabilities()
-        self.hue_limit = 0
-        self.sat_limit = 0
-        self.val_limit = 0
         self.background = self.generate_bg()
-        
-        # background_r = np.ones((frame_size[1], frame_size[0]), dtype=np.uint8) * 219
-        # background_g = np.ones((frame_size[1], frame_size[0]), dtype=np.uint8) * 210
-        # background_b = np.ones((frame_size[1], frame_size[0]), dtype=np.uint8) * 162
-        # self.background = np.stack((background_b, background_g, background_r), axis=-1)
 
         # Set up the video writer
         self.num_frames = length * fps
@@ -138,9 +140,8 @@ class SyntheticDatasetCreator(Singleton):
     def create_synthetic_dataset(self) -> None:
         for frame_idx in tqdm(range(self.num_frames)):
 
-            self.update_background()
-            self.frame = self.background.copy()
             self.update_pollen()
+            self.frame = self.background.copy()
             self.frame = self.animate(self.pollens, self.frame)
             frame_name = self.get_frame_name(frame_idx)
 
@@ -149,6 +150,7 @@ class SyntheticDatasetCreator(Singleton):
             if self.draw_bb:  self.frame = self.draw_bounding_boxes(self.frame, self.pollens)
             if self.save_video:  self.video_out.write(self.frame)
             if self.pollen_pos_mode == "continuous":  self.shift_pollen(self.pollens, self.speed)
+            self.update_background(frame_idx)
 
         if self.save_video: self.video_out.release()
         print(f"Output saved to {self.output_path}")
@@ -221,15 +223,21 @@ class SyntheticDatasetCreator(Singleton):
         bgr_column = cv2.cvtColor(np.expand_dims(hsv_column, axis=1), cv2.COLOR_HSV2BGR)
         return bgr_column
     
-    def generate_bg(self, mode: str = "dynamic") -> np.array:
+    def generate_bg(self) -> np.array:
         bgr_background = np.zeros((self.frame_size[1], self.frame_size[0], 3), dtype=np.uint8)
 
-        if mode == "static_rows":
+        if self.background_type == "solid_color":
+            background_r = np.ones((self.frame_size[1], self.frame_size[0]), dtype=np.uint8) * 219
+            background_g = np.ones((self.frame_size[1], self.frame_size[0]), dtype=np.uint8) * 210
+            background_b = np.ones((self.frame_size[1], self.frame_size[0]), dtype=np.uint8) * 162
+            bgr_background = np.stack((background_b, background_g, background_r), axis=-1)
+
+        elif self.background_type == "static_rows":
             column = self.generate_pixel_column()
             for x in range(self.frame_size[0]):
                 bgr_background[:, x, :] = column.squeeze()
 
-        elif mode == "random":
+        elif self.background_type == "random":
             for x in range(self.frame_size[0]):
                 column = self.generate_pixel_column(interpolate=False)
                 bgr_background[:, x, :] = column.squeeze()
@@ -239,7 +247,7 @@ class SyntheticDatasetCreator(Singleton):
             bgr_background = cv2.GaussianBlur(bgr_background, blur_size, 0)
             bgr_background = bgr_background.astype(np.uint8)
 
-        elif mode == "dynamic":
+        elif self.background_type == "dynamic":
             # Generate N columns
             num_columns = 25
             columns = [self.generate_pixel_column() for _ in range(num_columns-2)]
@@ -262,8 +270,19 @@ class SyntheticDatasetCreator(Singleton):
             
         return bgr_background
     
-    def update_background(self):
-        self.background = np.roll(self.background, self.speed, axis=1)
+    def update_background(self, frame_idx: int) -> None:
+        if frame_idx == 0:
+            return
+        if frame_idx % self.background_regen_inteerval == 0:
+            self.background = self.generate_bg()
+            print(f"Background regenerated at frame {frame_idx}!")
+            return
+        
+        if self.background_movement == "static": return
+        elif self.background_movement == "speed": bg_speed = self.speed
+        elif self.background_movement == "-speed": bg_speed = -self.speed
+
+        self.background = np.roll(self.background, bg_speed, axis=1)
         blur_size = (5, 5)
         background = cv2.GaussianBlur(self.background, blur_size, 0)
         self.background = np.clip(background, 0, 255).astype(np.uint8)  # Ensure values are valid
@@ -273,7 +292,7 @@ class SyntheticDatasetCreator(Singleton):
             self,
             pollens: List[Pollen],
             frame: np.array,
-        ):
+        ) -> np.array:
         for pollen in pollens:
             pollen.check_annotation()
             # Loop over each color channel
@@ -342,6 +361,11 @@ if __name__ == "__main__":
     parser.add_argument("--num_pollens", type=int, help="The number of pollens in one frame", required=False, default=40)
     parser.add_argument("--pollen_to_frame_ratio", type=int, help="Frame Height / pollen height = pollen_to_frame_ratio", required=False, default=15)
     parser.add_argument("--augment", type=bool, help="Set true if pollen image augmentation is needed", required=False, default=True)
+
+    parser.add_argument("--background_type", type=str, help="Set true if pollen image augmentation is needed", required=False, default="dynamic")
+    parser.add_argument("--background_regen_inteerval", type=str, help="Set true if pollen image augmentation is needed", required=False, default="one_cycle")
+    parser.add_argument("--background_movement", type=str, help="Set true if pollen image augmentation is needed", required=False, default="speed")
+
     parser.add_argument("--length", type=int, help="Length of the animation [s]", required=False, default=30)
     parser.add_argument("--speed", type=int, help="Speed of the pollen grain movement", required=False, default=10)
     parser.add_argument("--fps", type=int, help="Frames per second of the animation", required=False, default=30)
@@ -363,6 +387,9 @@ if __name__ == "__main__":
         num_pollens=args.num_pollens,
         pollen_to_frame_ratio=args.pollen_to_frame_ratio,
         augment=args.augment,
+        background_type = args.background_type,
+        background_regen_inteerval = args.background_regen_inteerval,
+        background_movement = args.background_movement,
         length=args.length,
         speed=args.speed,
         fps=args.fps,

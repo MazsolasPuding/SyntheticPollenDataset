@@ -14,9 +14,12 @@ Entry point: Animate.py
 
 ## To Do:
 
+- Pollen size and scale augmentation
+- Augmentation fine tuning
+
 - ~~Plot pictue sizes~~
 - ~~Plot masked Pollens~~
 - ~~Histogram of foreground~~
-- Histogram of background
+- ~~Histogram of background~~
 - ~~Make Masked Library~~
 - ~~Speed addition before bounding Box plotting caused to misaligned bboxes~~

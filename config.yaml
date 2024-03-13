@@ -20,7 +20,7 @@ flags:
   generate: true
 
 segment:
-  mode: all
+  mode: all # Options: one_per_class, all_from_one_class, n_random, all
   num_samples: 0
   seed: 42
   preprocess: True
@@ -36,12 +36,15 @@ split:
   test_ratio: 0.0
 
 synthetic:
-  pollen_pos_mode: continuous
+  pollen_pos_mode: random # Optiopns: random, continuous
   num_pollens: 20
   pollen_to_frame_ratio: 10
   augment: True
-  train_length: 10
-  val_length: 6
+  background_type: "random" # Options: solid_color, static_rows, random, dynamic
+  background_regen_inteerval: "always" # Options: one_cycle, none, always
+  background_movement: "speed" # Options: static, speed, -speed
+  train_length: 30
+  val_length: 10
   test_length: 0
   speed: 20
   fps: 30
