@@ -3,15 +3,15 @@
 ---
 path:
   # Mac Paths
-  pollen_dataset: /Users/horvada/Git/Personal/datasets/POLLEN73S
-  segmented_path: /Users/horvada/Git/Personal/datasets/POLLEN73S_SEG_BG
-  split_segmented_path: /Users/horvada/Git/Personal/datasets/POLLEN73S_SEG_SPLIT_TEST
-  synth_dataset_path: /Users/horvada/Git/Personal/datasets/SYNTH_POLLEN73S_TEST
+  # pollen_dataset: /Users/horvada/Git/Personal/datasets/POLLEN73S
+  # segmented_path: /Users/horvada/Git/Personal/datasets/POLLEN73S_SEG_BG
+  # split_segmented_path: /Users/horvada/Git/Personal/datasets/POLLEN73S_SEG_SPLIT_TEST
+  # synth_dataset_path: /Users/horvada/Git/Personal/datasets/SYNTH_POLLEN73S_TEST
   # Windows Paths
-  # pollen_dataset: E:/coding/Pollen/datasets/POLEN23E_Structured
-  # segmented_path: E:/coding/Pollen/datasets/POLEN23E_SEG_BG_Manual_Filtered
-  # split_segmented_path: E:/coding/Pollen/datasets/POLEN23E_SEG_SPLIT_Manual_Filtered_80TRAIN_20VAL
-  # synth_dataset_path: E:/coding/Pollen/datasets/SYNTH_POLEN23E_Manual_Filtered_300_60
+  pollen_dataset: E:/coding/Pollen/datasets/POLEN23E_Structured
+  segmented_path: E:/coding/Pollen/datasets/POLEN23E_SEG_BG_Manual_Filtered
+  split_segmented_path: E:/coding/Pollen/datasets/POLEN23E_SEG_SPLIT_Manual_Filtered_80TRAIN_20VAL
+  synth_dataset_path: E:/coding/Pollen/datasets/SYNTH_POLEN23E_Manual_Filtered_300_60
 
 flags:
   segment: false
@@ -40,11 +40,14 @@ synthetic:
   num_pollens: 20
   pollen_to_frame_ratio: 10
   augment: True
-  background_type: "random" # Options: solid_color, static_rows, random, dynamic
-  background_regen_inteerval: "always" # Options: one_cycle, none, always
-  background_movement: "speed" # Options: static, speed, -speed
-  train_length: 30
-  val_length: 10
+  background_types: # Options: solid_color, static_rows, random, dynamic
+    - dynamic
+    - random
+    - solid_color
+  background_regen_inteerval: one_cycle # Options: one_cycle, none, always
+  background_movement: speed # Options: static, speed, -speed
+  train_length: 500
+  val_length: 100
   test_length: 0
   speed: 20
   fps: 30
@@ -54,4 +57,4 @@ synthetic:
   save_video: True
   save_frames: True
   save_labels: True
-  draw_bb: True
+  draw_bb: False

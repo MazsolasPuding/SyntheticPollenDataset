@@ -59,7 +59,7 @@ def main(config):
                 num_pollens=config['synthetic']['num_pollens'],
                 pollen_to_frame_ratio=config['synthetic']['pollen_to_frame_ratio'],
                 augment=config['synthetic']['augment'],
-                background_type=config['synthetic']['background_type'],
+                background_types=config['synthetic']['background_types'],
                 background_regen_inteerval=config['synthetic']['background_regen_inteerval'],
                 background_movement=config['synthetic']['background_movement'],
                 length=pars[1],

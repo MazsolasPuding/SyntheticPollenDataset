@@ -65,11 +65,11 @@ class Pollen:
 
     def augment_image(self):
         # Apply color transformations
-        self.bgr = F.adjust_hue(self.bgr, np.random.uniform(-0.05, 0.05))
-        self.bgr = F.adjust_saturation(self.bgr, np.random.uniform(0.5, 1.5))
-        self.bgr = F.adjust_brightness(self.bgr, np.random.uniform(0.5, 1.5))
-        self.bgr = F.adjust_contrast(self.bgr, np.random.uniform(0.5, 1.5))
-        self.bgr = F.adjust_gamma(self.bgr, np.random.uniform(0.5, 1.5))
+        self.bgr = F.adjust_hue(self.bgr, np.random.uniform(-0.01, 0.01))
+        self.bgr = F.adjust_saturation(self.bgr, np.random.uniform(0.8, 1.2))
+        self.bgr = F.adjust_brightness(self.bgr, np.random.uniform(0.8, 1.2))
+        self.bgr = F.adjust_contrast(self.bgr, np.random.uniform(0.8, 1.2))
+        self.bgr = F.adjust_gamma(self.bgr, np.random.uniform(0.8, 1.2))
 
         # Flip horizontally
         if np.random.rand() < 0.5: 

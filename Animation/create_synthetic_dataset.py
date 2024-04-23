@@ -62,7 +62,7 @@ class SyntheticDatasetCreator(Singleton):
             num_pollens: int = 30,
             pollen_to_frame_ratio: int = 10,
             augment: bool = True,
-            background_type: str = "dynamic",
+            background_types: List[str] = ["dynamic"],
             background_regen_inteerval: str = "one_cycle",
             background_movement: str = "speed",
             length: int = 30,
@@ -82,7 +82,7 @@ class SyntheticDatasetCreator(Singleton):
         self.num_pollens = num_pollens
         self.pollen_to_frame_ratio = pollen_to_frame_ratio
         self.augment = augment
-        self.background_type = background_type
+        self.background_types = background_types
         self.background_regen_inteerval = background_regen_inteerval
         self.background_movement = background_movement
         self.length = length
@@ -102,7 +102,7 @@ class SyntheticDatasetCreator(Singleton):
                     for pic in subdir.iterdir() if pic.suffix.lower() in self.picture_formats]
 
         self.output_path = Path(output_path)
-        self.pollen_path=Path(pollen_path)
+        self.pollen_path = Path(pollen_path)
 
         self.save_labels_path = self.output_path / mode / "labels"
         self.save_labels_path.mkdir(exist_ok=True, parents=True)
@@ -114,6 +114,7 @@ class SyntheticDatasetCreator(Singleton):
         current_time = datetime.now()
         timestamp_format = "%Y-%m-%d_%H-%M"
         self.start_timestamp_str = current_time.strftime(timestamp_format)
+        self.random_generator = np.random.default_rng()
 
         self.pollens = self.select_pollen(
                                 num_pollens,
@@ -125,7 +126,8 @@ class SyntheticDatasetCreator(Singleton):
         elif background_regen_inteerval == "always": self.background_regen_inteerval = 1
 
         self.bg_probabilities = self.create_bg_probabilities()
-        self.background = self.generate_bg()
+        self.backgrounds = self.generate_bg()
+        print(len(self.backgrounds))
 
         # Set up the video writer
         self.num_frames = length * fps
@@ -141,7 +143,7 @@ class SyntheticDatasetCreator(Singleton):
         for frame_idx in tqdm(range(self.num_frames)):
 
             self.update_pollen()
-            self.frame = self.background.copy()
+            self.frame = self.random_generator.choice(self.backgrounds).copy()
             self.frame = self.animate(self.pollens, self.frame)
             frame_name = self.get_frame_name(frame_idx)
 
@@ -223,31 +225,37 @@ class SyntheticDatasetCreator(Singleton):
         bgr_column = cv2.cvtColor(np.expand_dims(hsv_column, axis=1), cv2.COLOR_HSV2BGR)
         return bgr_column
     
-    def generate_bg(self) -> np.array:
+    def generate_bg(self) -> List[np.array]:
+        backgrounds = []
         bgr_background = np.zeros((self.frame_size[1], self.frame_size[0], 3), dtype=np.uint8)
 
-        if self.background_type == "solid_color":
+        if "solid_color" in self.background_types:
             background_r = np.ones((self.frame_size[1], self.frame_size[0]), dtype=np.uint8) * 219
             background_g = np.ones((self.frame_size[1], self.frame_size[0]), dtype=np.uint8) * 210
             background_b = np.ones((self.frame_size[1], self.frame_size[0]), dtype=np.uint8) * 162
-            bgr_background = np.stack((background_b, background_g, background_r), axis=-1)
+            backgrounds.append(np.stack((background_b, background_g, background_r), axis=-1))
 
-        elif self.background_type == "static_rows":
+        if "static_rows" in self.background_types:
+            static_rows_bg = bgr_background.copy()
             column = self.generate_pixel_column()
             for x in range(self.frame_size[0]):
-                bgr_background[:, x, :] = column.squeeze()
+                static_rows_bg[:, x, :] = column.squeeze()
+            backgrounds.append(static_rows_bg)
 
-        elif self.background_type == "random":
+        if "random" in self.background_types:
+            random_bg = bgr_background.copy()
             for x in range(self.frame_size[0]):
                 column = self.generate_pixel_column(interpolate=False)
-                bgr_background[:, x, :] = column.squeeze()
+                random_bg[:, x, :] = column.squeeze()
 
-            bgr_background = bgr_background.astype(np.float32)
+            random_bg = random_bg.astype(np.float32)
             blur_size = (1, 1)
-            bgr_background = cv2.GaussianBlur(bgr_background, blur_size, 0)
-            bgr_background = bgr_background.astype(np.uint8)
+            random_bg = cv2.GaussianBlur(random_bg, blur_size, 0)
+            random_bg = random_bg.astype(np.uint8)
+            backgrounds.append(random_bg)
 
-        elif self.background_type == "dynamic":
+        if "dynamic" in self.background_types:
+            dynamic_bg = bgr_background.copy()
             # Generate N columns
             num_columns = 25
             columns = [self.generate_pixel_column() for _ in range(num_columns-2)]
@@ -256,36 +264,38 @@ class SyntheticDatasetCreator(Singleton):
             # Interpolate to frame width
             original_indices = np.linspace(0, self.frame_size[0], num_columns, endpoint=False)
             target_indices = np.arange(self.frame_size[0])
-            bgr_background = np.zeros((self.frame_size[1], self.frame_size[0], 3), dtype=np.float32)
+            dynamic_bg = np.zeros((self.frame_size[1], self.frame_size[0], 3), dtype=np.float32)
     
             for i in range(3):  # Iterate over each color channel
                 # Interpolate each channel separately
                 interp_func = interp1d(original_indices, columns_stack[:, :, i], kind='linear', axis=1, fill_value="extrapolate")
-                bgr_background[:, :, i] = interp_func(target_indices)
+                dynamic_bg[:, :, i] = interp_func(target_indices)
             
             # Apply Gaussian Blur for additional smoothness
             blur_size = (5, 5)
-            bgr_background = cv2.GaussianBlur(bgr_background, blur_size, 0)
-            bgr_background = np.clip(bgr_background, 0, 255).astype(np.uint8)  # Ensure values are valid
-            
-        return bgr_background
+            dynamic_bg = cv2.GaussianBlur(dynamic_bg, blur_size, 0)
+            dynamic_bg = np.clip(dynamic_bg, 0, 255).astype(np.uint8)  # Ensure values are valid
+            backgrounds.append(dynamic_bg)
+        return backgrounds
+
     
     def update_background(self, frame_idx: int) -> None:
         if frame_idx == 0:
             return
         if frame_idx % self.background_regen_inteerval == 0:
-            self.background = self.generate_bg()
+            self.backgrounds = self.generate_bg()
             print(f"Background regenerated at frame {frame_idx}!")
             return
-        
-        if self.background_movement == "static": return
-        elif self.background_movement == "speed": bg_speed = self.speed
-        elif self.background_movement == "-speed": bg_speed = -self.speed
+        for idx, _ in enumerate(self.backgrounds):
+            
+            if self.background_movement == "static": return
+            elif self.background_movement == "speed": bg_speed = self.speed
+            elif self.background_movement == "-speed": bg_speed = -self.speed
 
-        self.background = np.roll(self.background, bg_speed, axis=1)
-        blur_size = (5, 5)
-        background = cv2.GaussianBlur(self.background, blur_size, 0)
-        self.background = np.clip(background, 0, 255).astype(np.uint8)  # Ensure values are valid
+            self.backgrounds[idx] = np.roll(self.backgrounds[idx], bg_speed, axis=1)
+            blur_size = (5, 5)
+            self.backgrounds[idx] = cv2.GaussianBlur(self.backgrounds[idx], blur_size, 0)
+            self.backgrounds[idx] = np.clip(self.backgrounds[idx], 0, 255).astype(np.uint8)  # Ensure values are valid
 
 
     def animate(
@@ -362,7 +372,7 @@ if __name__ == "__main__":
     parser.add_argument("--pollen_to_frame_ratio", type=int, help="Frame Height / pollen height = pollen_to_frame_ratio", required=False, default=15)
     parser.add_argument("--augment", type=bool, help="Set true if pollen image augmentation is needed", required=False, default=True)
 
-    parser.add_argument("--background_type", type=str, help="Set true if pollen image augmentation is needed", required=False, default="dynamic")
+    parser.add_argument("--background_types", type=str, help="Set true if pollen image augmentation is needed", required=False, default=["dynamic"])
     parser.add_argument("--background_regen_inteerval", type=str, help="Set true if pollen image augmentation is needed", required=False, default="one_cycle")
     parser.add_argument("--background_movement", type=str, help="Set true if pollen image augmentation is needed", required=False, default="speed")
 
@@ -387,7 +397,7 @@ if __name__ == "__main__":
         num_pollens=args.num_pollens,
         pollen_to_frame_ratio=args.pollen_to_frame_ratio,
         augment=args.augment,
-        background_type = args.background_type,
+        background_types = args.background_types,
         background_regen_inteerval = args.background_regen_inteerval,
         background_movement = args.background_movement,
         length=args.length,
