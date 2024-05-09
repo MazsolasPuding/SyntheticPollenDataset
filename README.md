@@ -2,6 +2,8 @@
 
 ## Usage:
 
+Run generate.py with the parameters set up in config.yaml.
+
 ### Segmentation:
 
 Entry point: Image_processing.py

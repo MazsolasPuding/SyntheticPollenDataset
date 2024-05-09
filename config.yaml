@@ -11,11 +11,11 @@ path:
   pollen_dataset: E:/coding/Pollen/datasets/POLEN23E_Structured
   segmented_path: E:/coding/Pollen/datasets/POLEN23E_SEG_BG_Manual_Filtered
   split_segmented_path: E:/coding/Pollen/datasets/POLEN23E_SEG_SPLIT_Manual_Filtered_80TRAIN_20VAL
-  synth_dataset_path: E:/coding/Pollen/datasets/SYNTH_POLEN23E_Manual_Filtered_300_60
+  synth_dataset_path: E:/coding/Pollen/datasets/SYNTH_POLEN23E_Manual_Filtered_300_100_filtered_FOR_INF
 
 flags:
   segment: false
-  split: true
+  split: False
   train_config: true
   generate: true
 
@@ -36,20 +36,18 @@ split:
   test_ratio: 0.0
 
 synthetic:
-  pollen_pos_mode: random # Optiopns: random, continuous
+  pollen_pos_mode: continuous # Optiopns: random, continuous
   num_pollens: 20
   pollen_to_frame_ratio: 10
   augment: True
   background_types: # Options: solid_color, static_rows, random, dynamic
     - dynamic
-    - random
-    - solid_color
   background_regen_inteerval: one_cycle # Options: one_cycle, none, always
   background_movement: speed # Options: static, speed, -speed
-  train_length: 500
-  val_length: 100
+  train_length: 0
+  val_length: 30
   test_length: 0
-  speed: 20
+  speed: 10
   fps: 30
   frame_size:
     - 1920
